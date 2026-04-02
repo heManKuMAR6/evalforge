@@ -1,0 +1,87 @@
+{
+  "evalforge_version": "0.1",
+  "trace_id": "trace-001",
+  "timestamp": "2026-04-02T10:00:00Z",
+  "metadata": {
+    "framework": "langchain",
+    "model": "gpt-4o",
+    "agent_name": "research-agent",
+    "duration_ms": 3421,
+    "total_tokens": 1820
+  },
+  "input": {
+    "user": "What are the latest papers on LLM evaluation?",
+    "system": "You are a helpful research assistant."
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "type": "thought",
+      "content": "The user wants to know about recent papers on LLM evaluation. I should search the web for the latest research on this topic to give an up-to-date answer."
+    },
+    {
+      "step_id": 2,
+      "type": "tool_call",
+      "tool": "web_search",
+      "input": {
+        "query": "latest LLM evaluation papers 2024 2025"
+      },
+      "output": {
+        "results": [
+          {
+            "title": "HELMET: How to Evaluate Long-Context Language Models Effectively and Thoroughly",
+            "url": "https://arxiv.org/abs/2410.02694",
+            "snippet": "HELMET is a comprehensive benchmark for long-context LLMs covering diverse tasks including retrieval, RAG, summarization, and many-shot learning."
+          },
+          {
+            "title": "LiveBench: A Challenging, Contamination-Free LLM Benchmark",
+            "url": "https://arxiv.org/abs/2406.19314",
+            "snippet": "LiveBench releases new questions monthly based on recent information, making it resistant to data contamination and providing a reliable measure of LLM capabilities."
+          },
+          {
+            "title": "Judging the Judges: Evaluating Alignment and Vulnerabilities in LLMs-as-Judges",
+            "url": "https://arxiv.org/abs/2406.12624",
+            "snippet": "This paper examines the use of LLMs as evaluators, analyzing biases, positional effects, and reliability of model-based evaluation pipelines."
+          },
+          {
+            "title": "MMLU-Pro: A More Robust and Challenging Multi-Task Language Understanding Benchmark",
+            "url": "https://arxiv.org/abs/2406.01574",
+            "snippet": "MMLU-Pro extends the original MMLU with harder questions, more answer choices, and reduced sensitivity to prompt variations."
+          }
+        ]
+      },
+      "duration_ms": 1204
+    },
+    {
+      "step_id": 3,
+      "type": "thought",
+      "content": "I have a good set of recent papers. I'll summarize the key findings across these papers to give the user a clear overview of the current landscape in LLM evaluation research."
+    },
+    {
+      "step_id": 4,
+      "type": "tool_call",
+      "tool": "summarize",
+      "input": {
+        "documents": [
+          "HELMET: How to Evaluate Long-Context Language Models Effectively and Thoroughly",
+          "LiveBench: A Challenging, Contamination-Free LLM Benchmark",
+          "Judging the Judges: Evaluating Alignment and Vulnerabilities in LLMs-as-Judges",
+          "MMLU-Pro: A More Robust and Challenging Multi-Task Language Understanding Benchmark"
+        ],
+        "instruction": "Summarize the key themes and contributions of these LLM evaluation papers."
+      },
+      "output": {
+        "summary": "Recent work focuses on four major themes: (1) long-context evaluation with rigorous multi-task benchmarks, (2) contamination-resistant benchmarks using live data, (3) meta-evaluation of LLM-as-judge pipelines, and (4) harder, more discriminative academic benchmarks."
+      },
+      "duration_ms": 873
+    }
+  ],
+  "output": {
+    "answer": "Here are some of the most notable recent papers on LLM evaluation:\n\n1. **HELMET** (2024) — A thorough benchmark for long-context LLMs covering retrieval, RAG, summarization, and many-shot learning scenarios. It highlights that many models still struggle with tasks requiring reasoning over very long inputs.\n\n2. **LiveBench** (2024) — Addresses benchmark contamination by releasing new questions monthly derived from recent events and publications. This makes it much harder for models to game the benchmark through training data overlap.\n\n3. **Judging the Judges** (2024) — A meta-evaluation study of using LLMs as automated evaluators. It finds significant biases (e.g., preferring longer outputs, favoring the first option) and provides guidance on when LLM judges can and cannot be trusted.\n\n4. **MMLU-Pro** (2024) — An extension of the popular MMLU benchmark with more challenging questions, 10 answer choices instead of 4, and improved stability across prompt formats, making it a more reliable measure of reasoning ability.\n\nThe field is broadly moving toward contamination-resistant, dynamic benchmarks and toward rigorous scrutiny of LLM-as-judge evaluation pipelines."
+  },
+  "eval_hints": {
+    "expected_tools": ["web_search", "summarize"],
+    "expected_answer": null,
+    "context_documents": []
+  }
+}

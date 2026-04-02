@@ -1,0 +1,31 @@
+{
+  "evalforge_version": "0.1",
+  "trace_id": "trace-simple-001",
+  "timestamp": "2026-04-02T10:05:00Z",
+  "metadata": {
+    "framework": "openai-agents",
+    "model": "gpt-4o-mini",
+    "agent_name": "simple-agent",
+    "duration_ms": 850,
+    "total_tokens": 320
+  },
+  "input": {
+    "user": "What is the capital of France?",
+    "system": "You are a helpful assistant."
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "type": "thought",
+      "content": "The user is asking a straightforward factual question. I know the answer directly from my training data and do not need to use any tools."
+    }
+  ],
+  "output": {
+    "answer": "The capital of France is Paris."
+  },
+  "eval_hints": {
+    "expected_tools": [],
+    "expected_answer": "The capital of France is Paris.",
+    "context_documents": []
+  }
+}

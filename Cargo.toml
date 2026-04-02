@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "crates/evalforge-core",
+    "crates/evalforge-cli",
+]
+resolver = "2"
