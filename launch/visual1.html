@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvalForge — Every framework. One eval tool.</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1200px;
+    height: 630px;
+    background: #0d1117;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .logo {
+    font-size: 22px;
+    font-weight: 700;
+    color: #7c3aed;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0.9;
+  }
+
+  .logo span {
+    color: #a78bfa;
+  }
+
+  h1 {
+    font-size: 48px;
+    font-weight: 800;
+    color: #f0f6fc;
+    margin-bottom: 48px;
+    letter-spacing: -0.02em;
+    text-align: center;
+  }
+
+  table {
+    width: 820px;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #7d8590;
+    padding: 0 24px 14px 24px;
+    text-align: left;
+    border-bottom: 1px solid #21262d;
+  }
+
+  thead th:last-child {
+    text-align: left;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #161b22;
+  }
+
+  tbody td {
+    padding: 16px 24px;
+    font-size: 18px;
+    font-weight: 500;
+    color: #8b949e;
+    vertical-align: middle;
+  }
+
+  tbody td:first-child {
+    color: #c9d1d9;
+    font-weight: 600;
+  }
+
+  /* LangSmith row — amber */
+  .row-langchain td { color: #d29922; }
+  .row-langchain td:first-child { color: #e3b341; }
+
+  /* Nothing rows — red */
+  .row-nothing td { color: #da3633; }
+  .row-nothing td:first-child { color: #f85149; }
+
+  /* EvalForge row — green, bold, prominent */
+  .row-evalforge {
+    background: #0d2016;
+    border-radius: 10px;
+  }
+  .row-evalforge td {
+    color: #3fb950;
+    font-weight: 700;
+    font-size: 20px;
+  }
+  .row-evalforge td:first-child {
+    color: #56d364;
+    font-size: 20px;
+  }
+
+  .footer {
+    margin-top: 44px;
+    font-size: 15px;
+    color: #484f58;
+    letter-spacing: 0.03em;
+  }
+
+  .footer span {
+    color: #7c3aed;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+  <div class="logo">Eval<span>Forge</span></div>
+
+  <h1>Every framework. One eval tool.</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:260px">Framework</th>
+        <th>Has Eval?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="row-langchain">
+        <td>LangChain</td>
+        <td>LangSmith only (paid + locked in)</td>
+      </tr>
+      <tr class="row-nothing">
+        <td>CrewAI</td>
+        <td>Nothing</td>
+      </tr>
+      <tr class="row-nothing">
+        <td>AutoGen</td>
+        <td>Nothing</td>
+      </tr>
+      <tr class="row-nothing">
+        <td>OpenAI Agents SDK</td>
+        <td>Basic tracing, no scoring</td>
+      </tr>
+      <tr class="row-evalforge">
+        <td>EvalForge</td>
+        <td>All of them. Free. Open source.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>github.com/heManKuMAR6/evalforge</span>
+  </div>
+
+</body>
+</html>
