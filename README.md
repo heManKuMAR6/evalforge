@@ -209,5 +209,3 @@ git add .
 git commit -m "docs: update README with CI badge, real examples, and full usage docs"
 git push
 ```
-
-Then check your GitHub repo homepage — you should see the green CI badge live at the top. Come back and confirm it's showing and we move to the launch plan.
