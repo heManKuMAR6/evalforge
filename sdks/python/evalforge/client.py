@@ -29,11 +29,13 @@ def _find_binary() -> str:
     if env_bin and Path(env_bin).is_file():
         return env_bin
 
-    # 2. Compiled Rust binary relative to this file (local dev)
-    local_bin = Path(__file__).parent / "../../../target/debug/evalforge"
-    local_bin = local_bin.resolve()
-    if local_bin.is_file():
-        return str(local_bin)
+    # 2. Walk up from client.py looking for target/debug/evalforge (up to 5 levels)
+    current = Path(__file__).resolve().parent
+    for _ in range(5):
+        candidate = current / "target" / "debug" / "evalforge"
+        if candidate.exists():
+            return str(candidate)
+        current = current.parent
 
     # 3. System PATH
     import shutil
@@ -42,8 +44,9 @@ def _find_binary() -> str:
         return path_bin
 
     raise RuntimeError(
-        "evalforge binary not found. Set EVALFORGE_BIN, run `cargo build` in the "
-        "workspace root, or install the binary to PATH."
+        f"EvalForge binary not found. "
+        f"Searched up to 5 parent dirs from {Path(__file__).resolve()}. "
+        f"Set EVALFORGE_BIN env var to the binary path, or run 'cargo build' first."
     )
 
 
@@ -84,16 +87,22 @@ def run(
     trace_id = _extract_field(output, "Trace ID")
     framework = _extract_field(output, "Framework")
 
-    # Parse scoring result lines: e.g. "faithfulness     0.91   PASS"
+    # Parse scoring result lines and the Reason: line that follows each.
+    # e.g.:
+    #   faithfulness     0.91   PASS
+    #   Reason: Mock score — skipping live API call
     metric_results: list[MetricResult] = []
-    pattern = re.compile(r"^(\w+)\s+([\d.]+)\s+(PASS|FAIL)\s*$", re.MULTILINE)
+    pattern = re.compile(
+        r"^(\w+)\s+([\d.]+)\s+(PASS|FAIL)\s*\nReason:\s*(.+)$",
+        re.MULTILINE,
+    )
     for m in pattern.finditer(output):
         metric_results.append(
             MetricResult(
                 metric=m.group(1),
                 score=float(m.group(2)),
                 passed=m.group(3) == "PASS",
-                reason="",  # CLI doesn't surface per-metric reasons in stdout
+                reason=m.group(4).strip(),
             )
         )
 

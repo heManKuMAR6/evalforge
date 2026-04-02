@@ -32,6 +32,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Rust binary
+        run: cargo build
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -43,9 +52,6 @@ jobs:
       - name: Add uv to PATH
         run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Build Rust binary
-        run: cargo build
-
       - name: Install Python SDK
         run: |
           cd sdks/python
@@ -56,6 +62,6 @@ jobs:
         run: cd sdks/python && uv pip install pytest
 
       - name: Run pytest
-        run: |
-          cd sdks/python
-          uv run pytest tests/ -v
+        run: cd sdks/python && uv run pytest tests/ -v
+        env:
+          EVALFORGE_BIN: ${{ github.workspace }}/target/debug/evalforge

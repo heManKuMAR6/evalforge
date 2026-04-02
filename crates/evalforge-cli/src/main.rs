@@ -102,7 +102,7 @@ fn main() {
                             FaithfulnessResult {
                                 score: 0.91,
                                 pass: true,
-                                reason: "Mock score — API call skipped".to_string(),
+                                reason: "Mock score — skipping live API call".to_string(),
                                 threshold,
                             }
                         } else {
@@ -133,6 +133,7 @@ fn main() {
             for (name, r) in &results {
                 let status = if r.pass { "PASS" } else { "FAIL" };
                 println!("{:<16} {:.2}   {}", name, r.score, status);
+                println!("Reason: {}", r.reason);
             }
             println!("─────────────────────────────");
             if all_pass {

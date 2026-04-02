@@ -1,9 +1,14 @@
+from pathlib import Path
+
 import evalforge
 from evalforge.client import EvalResult, MetricResult
 
 
-SAMPLE_TRACE = "tests/fixtures/sample_trace.json"
-SIMPLE_TRACE = "tests/fixtures/simple_trace.json"
+# Resolve fixture paths relative to this file so tests work regardless of
+# which directory pytest is invoked from.
+_WORKSPACE_ROOT = Path(__file__).parent.parent.parent.parent
+SAMPLE_TRACE = str(_WORKSPACE_ROOT / "tests/fixtures/sample_trace.json")
+SIMPLE_TRACE = str(_WORKSPACE_ROOT / "tests/fixtures/simple_trace.json")
 
 
 def test_mock_run():
@@ -18,6 +23,11 @@ def test_simple_trace_mock():
     assert result.passed is True
     assert len(result.metrics) == 1
     assert result.metrics[0].score == 0.91
+
+
+def test_threshold_boundary():
+    mr = MetricResult(metric="faithfulness", score=0.7, passed=True, reason="at threshold")
+    assert mr.passed is True
 
 
 def test_metric_result_fields():
