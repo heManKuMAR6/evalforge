@@ -14,5 +14,8 @@ dependencies = []
 [project.urls]
 Homepage = "https://github.com/YOUR_USERNAME/evalforge"
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["evalforge"]
