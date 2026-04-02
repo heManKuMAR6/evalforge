@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "evalforge"
+version = "0.1.0"
+description = "Framework-agnostic LLM agent evaluation harness"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/YOUR_USERNAME/evalforge"
+
+[tool.hatch.build.targets.wheel]
+packages = ["evalforge"]
