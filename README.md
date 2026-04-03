@@ -289,14 +289,4 @@ If you find EvalForge useful, please star the repo — it helps others discover 
 ## License
 
 MIT © 2026 Hemanth Kumar
-```
 
----
-
-Once you've pasted it into `README.md`, commit and push:
-
-```bash
-git add .
-git commit -m "docs: update README with CI badge, real examples, and full usage docs"
-git push
-```
