@@ -71,6 +71,45 @@ print(result.metrics[0].score)   # 0.91
 print(result.metrics[0].reason)  # "The answer accurately reflects..."
 ```
 
+## Framework Adapters
+
+No manual JSON required. Convert your agent's output directly:
+
+### LangChain
+
+```python
+from evalforge.adapters import from_langchain
+import evalforge
+
+# Run your agent
+result = agent_executor.invoke({"input": "What is the capital of France?"})
+
+# Convert and evaluate
+trace = from_langchain(result, model="gpt-4o", agent_name="my-agent")
+eval_result = evalforge.run(trace, metrics=["faithfulness", "tool_accuracy"])
+print(eval_result.passed)
+```
+
+### CrewAI
+
+```python
+from evalforge.adapters import from_crewai
+
+result = crew.kickoff()
+trace = from_crewai(result, crew_name="research-crew", task_description="...")
+eval_result = evalforge.run(trace, metrics=["goal_completion"])
+```
+
+### AutoGen
+
+```python
+from evalforge.adapters import from_autogen
+
+chat_result = user_proxy.initiate_chat(assistant, message="...")
+trace = from_autogen(chat_result, model="gpt-4o")
+eval_result = evalforge.run(trace, metrics=["faithfulness"])
+```
+
 ## CLI Usage
 
 ```bash
@@ -137,8 +176,8 @@ EvalForge uses a simple universal trace format that any framework can map to:
 | `tool_accuracy` | Did the agent use the right tools correctly? | ✅ v0.2 |
 | `goal_completion` | Did the agent complete the assigned task? | ✅ v0.2 |
 | `hallucination` | Did the agent make up facts not in context? | ✅ v0.2 |
-| `context_precision` | How much retrieved context was relevant? | 🔜 v0.3 |
-| `g_eval` | Custom LLM-as-judge with user-defined rubric | 🔜 v0.3 |
+| `g_eval` | Custom LLM-as-judge with user-defined rubric | ✅ v0.3 |
+| `context_precision` | How much retrieved context was relevant? | 🔜 v0.6 |
 
 ## CI/CD Integration
 
@@ -153,6 +192,44 @@ Add EvalForge to your GitHub Actions pipeline:
 
 Exit code 0 = all metrics pass. Exit code 1 = one or more metrics fail. 
 Plug directly into any CI pipeline.
+
+## Trend Analysis
+
+Detect quality regression across sequential CI runs before it reaches users.
+
+```bash
+# Save results from each run
+evalforge run --trace agent.json --metrics faithfulness --output results/run_$(date +%s).json
+
+# Analyze trend across runs
+evalforge trend --history results/ --metrics faithfulness --window 10 --exit-on-regression
+```
+
+Output:
+```
+EvalForge — Trend Analysis
+─────────────────────────────
+History:  results/
+Window:   10 runs
+Files:    8 found
+─────────────────────────────
+Metric               Slope      Direction    Regression
+faithfulness         -0.0300    degrading    YES ⚠
+─────────────────────────────
+Overall: REGRESSION DETECTED
+```
+
+Exit code 1 when regression detected — plugs straight into any CI pipeline.
+
+### Python SDK
+
+```python
+from evalforge.trend import analyze_run_trend
+
+report = analyze_run_trend("results/", metrics=["faithfulness"], window=10)
+print(report.summary())
+print(report.any_regression)  # True if regression detected
+```
 
 ## Architecture
 
@@ -186,9 +263,12 @@ python examples/openai-agents/basic_eval.py
 
 - [x] v0.1 — CLI + trace parser + faithfulness metric + Python SDK
 - [x] v0.2 — tool_accuracy + goal_completion + hallucination metrics
-- [ ] v0.3 — context_precision + g_eval + CI/CD integrations
-- [ ] v0.4 — JS SDK + Mastra support
-- [ ] v1.0 — Full framework adapters + dashboard
+- [x] v0.3 — g_eval custom rubric metric
+- [x] v0.4 — platform wheels + RunTrendAnalyzer + --output flag
+- [x] v0.5 — framework adapters (LangChain, CrewAI, AutoGen) + trend CLI
+- [ ] v0.6 — context_precision + JS SDK
+- [ ] v0.7 — OpenAI Agents SDK adapter + Mastra adapter
+- [ ] v1.0 — web dashboard + team collaboration
 
 ## Contributing
 
