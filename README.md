@@ -134,9 +134,11 @@ EvalForge uses a simple universal trace format that any framework can map to:
 | Metric | Description | Status |
 |--------|-------------|--------|
 | `faithfulness` | Did the answer stay true to retrieved context? | ✅ v0.1 |
-| `tool_accuracy` | Did the agent use the right tools correctly? | 🔜 v0.2 |
-| `goal_completion` | Did the agent complete the assigned task? | 🔜 v0.2 |
-| `hallucination` | Did the agent make up facts? | 🔜 v0.2 |
+| `tool_accuracy` | Did the agent use the right tools correctly? | ✅ v0.2 |
+| `goal_completion` | Did the agent complete the assigned task? | ✅ v0.2 |
+| `hallucination` | Did the agent make up facts not in context? | ✅ v0.2 |
+| `context_precision` | How much retrieved context was relevant? | 🔜 v0.3 |
+| `g_eval` | Custom LLM-as-judge with user-defined rubric | 🔜 v0.3 |
 
 ## CI/CD Integration
 
@@ -183,11 +185,10 @@ python examples/openai-agents/basic_eval.py
 ## Roadmap
 
 - [x] v0.1 — CLI + trace parser + faithfulness metric + Python SDK
-- [ ] v0.2 — tool_accuracy + goal_completion + hallucination metrics
-- [ ] v0.3 — CI/CD integrations (GitHub Actions, GitLab CI)
+- [x] v0.2 — tool_accuracy + goal_completion + hallucination metrics
+- [ ] v0.3 — context_precision + g_eval + CI/CD integrations
 - [ ] v0.4 — JS SDK + Mastra support
-- [ ] v0.5 — Trace adapters (auto-convert from LangChain, CrewAI natively)
-- [ ] v1.0 — Full framework adapters + web dashboard
+- [ ] v1.0 — Full framework adapters + dashboard
 
 ## Contributing
 
