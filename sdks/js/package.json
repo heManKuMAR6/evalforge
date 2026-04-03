@@ -1,0 +1,29 @@
+{
+  "name": "evalforge",
+  "version": "0.6.0",
+  "description": "Framework-agnostic LLM agent evaluation harness",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test tests/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "llm",
+    "evaluation",
+    "agents",
+    "langchain",
+    "openai"
+  ],
+  "author": "heManKuMAR6",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heManKuMAR6/evalforge"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^5.0.0"
+  }
+}
