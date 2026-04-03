@@ -3,6 +3,9 @@ use evalforge_core::metrics::faithfulness::{extract_faithfulness_input, score_fa
 use evalforge_core::metrics::goal_completion::{
     extract_goal_completion_input, score_goal_completion,
 };
+use evalforge_core::metrics::hallucination::{
+    extract_hallucination_input, score_hallucination,
+};
 use evalforge_core::metrics::tool_accuracy::{
     extract_tool_accuracy_input, score_tool_accuracy, ToolAccuracyResult,
 };
@@ -169,6 +172,29 @@ fn main() {
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring goal_completion: {}", e);
+                                    std::process::exit(1);
+                                }
+                            }
+                        };
+                        results.push((name, scored));
+                    }
+                    "hallucination" => {
+                        let input = extract_hallucination_input(&t);
+                        let scored = if mock {
+                            MetricScore {
+                                score: 0.95,
+                                pass: true,
+                                reason: "Mock score — no hallucinations detected".to_string(),
+                            }
+                        } else {
+                            match score_hallucination(&input, &api_key, threshold) {
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                },
+                                Err(e) => {
+                                    eprintln!("Error scoring hallucination: {}", e);
                                     std::process::exit(1);
                                 }
                             }
