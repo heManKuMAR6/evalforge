@@ -126,7 +126,7 @@ fn main() {
                 }
             };
 
-            println!("EvalForge v0.5.0");
+            println!("EvalForge v0.6.0");
             println!("─────────────────────────────");
             println!("Trace ID:   {}", t.trace_id);
             println!("Framework:  {}", t.metadata.framework);

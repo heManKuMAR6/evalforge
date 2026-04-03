@@ -110,6 +110,16 @@ trace = from_autogen(chat_result, model="gpt-4o")
 eval_result = evalforge.run(trace, metrics=["faithfulness"])
 ```
 
+### OpenAI Agents SDK
+
+```python
+from evalforge.adapters import from_openai_agents
+
+result = await Runner.run(agent, "Your question")
+trace = from_openai_agents(result, agent_name="my-agent")
+eval_result = evalforge.run(trace, metrics=["faithfulness"])
+```
+
 ## CLI Usage
 
 ```bash
@@ -177,7 +187,7 @@ EvalForge uses a simple universal trace format that any framework can map to:
 | `goal_completion` | Did the agent complete the assigned task? | ✅ v0.2 |
 | `hallucination` | Did the agent make up facts not in context? | ✅ v0.2 |
 | `g_eval` | Custom LLM-as-judge with user-defined rubric | ✅ v0.3 |
-| `context_precision` | How much retrieved context was relevant? | 🔜 v0.6 |
+| `context_precision` | How much retrieved context was relevant? | ✅ v0.6 |
 
 ## CI/CD Integration
 
