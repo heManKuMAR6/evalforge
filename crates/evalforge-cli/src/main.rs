@@ -40,6 +40,10 @@ enum Commands {
         /// Custom evaluation rubric for g_eval metric
         #[arg(long)]
         rubric: Option<String>,
+
+        /// Save results to a JSON file
+        #[arg(long)]
+        output: Option<String>,
     },
 }
 
@@ -71,6 +75,7 @@ fn main() {
             threshold,
             mock,
             rubric,
+            output,
         } => {
             let t = match load_trace(&trace) {
                 Ok(t) => t,
@@ -80,7 +85,7 @@ fn main() {
                 }
             };
 
-            println!("EvalForge v0.2.0");
+            println!("EvalForge v0.4.0");
             println!("─────────────────────────────");
             println!("Trace ID:   {}", t.trace_id);
             println!("Framework:  {}", t.metadata.framework);
@@ -275,6 +280,50 @@ fn main() {
                 println!("Overall: PASS");
             } else {
                 println!("Overall: FAIL");
+            }
+
+            if let Some(output_path) = &output {
+                let metrics_json: Vec<serde_json::Value> = results
+                    .iter()
+                    .map(|(name, r)| {
+                        serde_json::json!({
+                            "metric": name,
+                            "score": r.score,
+                            "passed": r.pass,
+                            "reason": r.reason,
+                        })
+                    })
+                    .collect();
+
+                let output_json = serde_json::json!({
+                    "trace_id": t.trace_id,
+                    "framework": t.metadata.framework,
+                    "model": t.metadata.model,
+                    "agent_name": t.metadata.agent_name,
+                    "timestamp": t.timestamp,
+                    "metrics": metrics_json,
+                    "overall_passed": all_pass,
+                });
+
+                let path = std::path::Path::new(output_path);
+                if let Some(parent) = path.parent() {
+                    if let Err(e) = std::fs::create_dir_all(parent) {
+                        eprintln!("Error: failed to create output directory: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+
+                let pretty = serde_json::to_string_pretty(&output_json)
+                    .expect("failed to serialize results");
+                if let Err(e) = std::fs::write(path, pretty) {
+                    eprintln!("Error: failed to write output file: {}", e);
+                    std::process::exit(1);
+                }
+
+                println!("Results saved to: {}", output_path);
+            }
+
+            if !all_pass {
                 std::process::exit(1);
             }
         }

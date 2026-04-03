@@ -47,3 +47,56 @@ def test_metric_result_fields():
     assert er.framework == "langchain"
     assert er.passed is True
     assert er.metrics[0].metric == "faithfulness"
+
+
+def test_run_trend_stable():
+    """Stable scores produce no regression."""
+    import tempfile, json
+    from evalforge.trend import analyze_run_trend
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for i, score in enumerate([0.91, 0.90, 0.92, 0.91, 0.90]):
+            data = {
+                "trace_id": f"run-{i}",
+                "metrics": [{"metric": "faithfulness", "score": score, "passed": True}]
+            }
+            Path(tmpdir, f"run_{i:03d}.json").write_text(json.dumps(data))
+
+        report = analyze_run_trend(tmpdir, metrics=["faithfulness"])
+        assert report.any_regression is False
+        assert report.trends[0].direction == "stable"
+
+
+def test_run_trend_regression():
+    """Degrading scores trigger regression detection."""
+    import tempfile, json
+    from evalforge.trend import analyze_run_trend
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for i, score in enumerate([0.91, 0.85, 0.79, 0.73, 0.67]):
+            data = {
+                "trace_id": f"run-{i}",
+                "metrics": [{"metric": "faithfulness", "score": score, "passed": score >= 0.7}]
+            }
+            Path(tmpdir, f"run_{i:03d}.json").write_text(json.dumps(data))
+
+        report = analyze_run_trend(tmpdir, metrics=["faithfulness"])
+        assert report.any_regression is True
+        assert report.trends[0].direction == "degrading"
+        assert report.trends[0].slope < -0.02
+
+
+def test_run_trend_requires_two_files():
+    """Raises ValueError with fewer than 2 run files."""
+    import tempfile, json
+    from evalforge.trend import analyze_run_trend
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        Path(tmpdir, "run_001.json").write_text(json.dumps({
+            "metrics": [{"metric": "faithfulness", "score": 0.91, "passed": True}]
+        }))
+        try:
+            analyze_run_trend(tmpdir, metrics=["faithfulness"])
+            assert False, "Should have raised ValueError"
+        except ValueError:
+            pass
