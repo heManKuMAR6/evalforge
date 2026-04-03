@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
-use evalforge_core::metrics::faithfulness::{
-    extract_faithfulness_input, score_faithfulness, FaithfulnessResult,
+use evalforge_core::metrics::faithfulness::{extract_faithfulness_input, score_faithfulness};
+use evalforge_core::metrics::tool_accuracy::{
+    extract_tool_accuracy_input, score_tool_accuracy, ToolAccuracyResult,
 };
 use evalforge_core::trace::load_trace;
 
@@ -31,6 +32,22 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         mock: bool,
     },
+}
+
+struct MetricScore {
+    score: f64,
+    pass: bool,
+    reason: String,
+}
+
+impl From<ToolAccuracyResult> for MetricScore {
+    fn from(r: ToolAccuracyResult) -> Self {
+        MetricScore {
+            score: r.score,
+            pass: r.pass,
+            reason: r.reason,
+        }
+    }
 }
 
 fn main() {
@@ -92,29 +109,45 @@ fn main() {
                 String::new()
             };
 
-            let mut results: Vec<(&str, FaithfulnessResult)> = Vec::new();
+            let mut results: Vec<(&str, MetricScore)> = Vec::new();
 
             for name in &metric_names {
                 match *name {
                     "faithfulness" => {
                         let input = extract_faithfulness_input(&t);
-                        let result = if mock {
-                            FaithfulnessResult {
+                        let scored = if mock {
+                            MetricScore {
                                 score: 0.91,
                                 pass: true,
                                 reason: "Mock score — skipping live API call".to_string(),
-                                threshold,
                             }
                         } else {
                             match score_faithfulness(&input, &api_key, threshold) {
-                                Ok(r) => r,
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                },
                                 Err(e) => {
                                     eprintln!("Error scoring faithfulness: {}", e);
                                     std::process::exit(1);
                                 }
                             }
                         };
-                        results.push((name, result));
+                        results.push((name, scored));
+                    }
+                    "tool_accuracy" => {
+                        let input = extract_tool_accuracy_input(&t);
+                        let scored = if mock {
+                            MetricScore {
+                                score: 1.0,
+                                pass: true,
+                                reason: "Mock score — all expected tools used".to_string(),
+                            }
+                        } else {
+                            score_tool_accuracy(&input, threshold).into()
+                        };
+                        results.push((name, scored));
                     }
                     other => {
                         eprintln!("Warning: unknown metric '{}', skipping.", other);
