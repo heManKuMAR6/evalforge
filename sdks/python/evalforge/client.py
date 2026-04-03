@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -24,29 +25,41 @@ class EvalResult:
 
 
 def _find_binary() -> str:
-    # 1. Explicit override via environment variable
-    env_bin = os.environ.get("EVALFORGE_BIN")
-    if env_bin and Path(env_bin).is_file():
-        return env_bin
+    # 1. Explicit env var
+    if "EVALFORGE_BIN" in os.environ:
+        return os.environ["EVALFORGE_BIN"]
 
-    # 2. Walk up from client.py looking for target/debug/evalforge (up to 5 levels)
+    # 2. Bundled inside pip package (maturin puts it in scripts/)
+    scripts_dir = Path(sys.prefix) / "bin" / "evalforge"
+    if scripts_dir.exists():
+        return str(scripts_dir)
+
+    # 3. Walk up from client.py looking for target/debug/evalforge
     current = Path(__file__).resolve().parent
-    for _ in range(5):
+    for _ in range(6):
         candidate = current / "target" / "debug" / "evalforge"
         if candidate.exists():
             return str(candidate)
+        candidate2 = current / "target" / "release" / "evalforge"
+        if candidate2.exists():
+            return str(candidate2)
         current = current.parent
 
-    # 3. System PATH
+    # 4. On PATH
     import shutil
-    path_bin = shutil.which("evalforge")
-    if path_bin:
-        return path_bin
+    which = shutil.which("evalforge")
+    if which:
+        return which
 
     raise RuntimeError(
-        f"EvalForge binary not found. "
-        f"Searched up to 5 parent dirs from {Path(__file__).resolve()}. "
-        f"Set EVALFORGE_BIN env var to the binary path, or run 'cargo build' first."
+        "\nEvalForge binary not found.\n\n"
+        "Option 1 — Build from source:\n"
+        "  git clone https://github.com/heManKuMAR6/evalforge\n"
+        "  cd evalforge && cargo build --release\n"
+        "  export EVALFORGE_BIN=/path/to/evalforge/target/release/evalforge\n\n"
+        "Option 2 — Set binary path manually:\n"
+        "  export EVALFORGE_BIN=/path/to/evalforge/binary\n\n"
+        "Full instructions: github.com/heManKuMAR6/evalforge\n"
     )
 
 
@@ -114,6 +127,60 @@ def run(
         metrics=metric_results,
         passed=overall_passed,
     )
+
+
+def demo() -> EvalResult:
+    """Run EvalForge on a built-in sample trace. No file needed."""
+    import tempfile
+    import json
+
+    sample_trace = {
+        "evalforge_version": "0.1",
+        "trace_id": "demo-trace-001",
+        "timestamp": "2026-04-02T10:00:00Z",
+        "metadata": {
+            "framework": "langchain",
+            "model": "gpt-4o",
+            "agent_name": "demo-agent",
+            "duration_ms": 3421,
+            "total_tokens": 1820
+        },
+        "input": {
+            "user": "What is the capital of Australia?",
+            "system": "You are a helpful assistant."
+        },
+        "steps": [
+            {
+                "step_id": 1,
+                "type": "thought",
+                "content": "The user wants to know Australia's capital."
+            },
+            {
+                "step_id": 2,
+                "type": "tool_call",
+                "tool": "web_search",
+                "input": {"query": "capital of Australia"},
+                "output": {"result": "Canberra is the capital of Australia."},
+                "duration_ms": 800
+            }
+        ],
+        "output": {
+            "answer": "The capital of Australia is Canberra."
+        },
+        "eval_hints": {
+            "expected_tools": ["web_search"],
+            "expected_answer": "Canberra",
+            "context_documents": []
+        }
+    }
+
+    with tempfile.NamedTemporaryFile(
+        mode='w', suffix='.json', delete=False
+    ) as f:
+        json.dump(sample_trace, f)
+        tmp_path = f.name
+
+    return run(tmp_path, metrics=["faithfulness"], mock=True)
 
 
 def _extract_field(output: str, label: str) -> str:
