@@ -1,18 +1,17 @@
 use clap::{Parser, Subcommand};
 use evalforge_core::metrics::faithfulness::{extract_faithfulness_input, score_faithfulness};
+use evalforge_core::metrics::g_eval::{extract_g_eval_input, score_g_eval};
 use evalforge_core::metrics::goal_completion::{
     extract_goal_completion_input, score_goal_completion,
 };
-use evalforge_core::metrics::hallucination::{
-    extract_hallucination_input, score_hallucination,
-};
+use evalforge_core::metrics::hallucination::{extract_hallucination_input, score_hallucination};
 use evalforge_core::metrics::tool_accuracy::{
     extract_tool_accuracy_input, score_tool_accuracy, ToolAccuracyResult,
 };
 use evalforge_core::trace::load_trace;
 
 #[derive(Parser)]
-#[command(name = "evalforge", version = "0.1")]
+#[command(name = "evalforge", version = "0.2.0")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -37,6 +36,10 @@ enum Commands {
         /// Return a fake score without calling the API
         #[arg(long, default_value_t = false)]
         mock: bool,
+
+        /// Custom evaluation rubric for g_eval metric
+        #[arg(long)]
+        rubric: Option<String>,
     },
 }
 
@@ -44,6 +47,7 @@ struct MetricScore {
     score: f64,
     pass: bool,
     reason: String,
+    rubric: Option<String>,
 }
 
 impl From<ToolAccuracyResult> for MetricScore {
@@ -52,6 +56,7 @@ impl From<ToolAccuracyResult> for MetricScore {
             score: r.score,
             pass: r.pass,
             reason: r.reason,
+            rubric: None,
         }
     }
 }
@@ -65,6 +70,7 @@ fn main() {
             metrics,
             threshold,
             mock,
+            rubric,
         } => {
             let t = match load_trace(&trace) {
                 Ok(t) => t,
@@ -126,6 +132,7 @@ fn main() {
                                 score: 0.91,
                                 pass: true,
                                 reason: "Mock score — skipping live API call".to_string(),
+                                rubric: None,
                             }
                         } else {
                             match score_faithfulness(&input, &api_key, threshold) {
@@ -133,6 +140,7 @@ fn main() {
                                     score: r.score,
                                     pass: r.pass,
                                     reason: r.reason,
+                                    rubric: None,
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring faithfulness: {}", e);
@@ -149,6 +157,7 @@ fn main() {
                                 score: 1.0,
                                 pass: true,
                                 reason: "Mock score — all expected tools used".to_string(),
+                                rubric: None,
                             }
                         } else {
                             score_tool_accuracy(&input, threshold).into()
@@ -162,6 +171,7 @@ fn main() {
                                 score: 0.85,
                                 pass: true,
                                 reason: "Mock score — goal appears completed".to_string(),
+                                rubric: None,
                             }
                         } else {
                             match score_goal_completion(&input, &api_key, threshold) {
@@ -169,6 +179,7 @@ fn main() {
                                     score: r.score,
                                     pass: r.pass,
                                     reason: r.reason,
+                                    rubric: None,
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring goal_completion: {}", e);
@@ -185,6 +196,7 @@ fn main() {
                                 score: 0.95,
                                 pass: true,
                                 reason: "Mock score — no hallucinations detected".to_string(),
+                                rubric: None,
                             }
                         } else {
                             match score_hallucination(&input, &api_key, threshold) {
@@ -192,9 +204,44 @@ fn main() {
                                     score: r.score,
                                     pass: r.pass,
                                     reason: r.reason,
+                                    rubric: None,
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring hallucination: {}", e);
+                                    std::process::exit(1);
+                                }
+                            }
+                        };
+                        results.push((name, scored));
+                    }
+                    "g_eval" => {
+                        let rubric_str = match &rubric {
+                            Some(r) => r.as_str(),
+                            None => {
+                                eprintln!(
+                                    "Error: --rubric is required when using g_eval metric"
+                                );
+                                std::process::exit(1);
+                            }
+                        };
+                        let scored = if mock {
+                            MetricScore {
+                                score: 0.88,
+                                pass: true,
+                                reason: "Mock score — response meets rubric criteria".to_string(),
+                                rubric: Some(rubric_str.to_string()),
+                            }
+                        } else {
+                            let input = extract_g_eval_input(&t, rubric_str);
+                            match score_g_eval(&input, &api_key, threshold) {
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                    rubric: Some(r.rubric),
+                                },
+                                Err(e) => {
+                                    eprintln!("Error scoring g_eval: {}", e);
                                     std::process::exit(1);
                                 }
                             }
@@ -219,6 +266,9 @@ fn main() {
                 let status = if r.pass { "PASS" } else { "FAIL" };
                 println!("{:<16} {:.2}   {}", name, r.score, status);
                 println!("Reason: {}", r.reason);
+                if let Some(rb) = &r.rubric {
+                    println!("Rubric: \"{}\"", rb);
+                }
             }
             println!("─────────────────────────────");
             if all_pass {
