@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
 use evalforge_core::metrics::faithfulness::{extract_faithfulness_input, score_faithfulness};
+use evalforge_core::metrics::goal_completion::{
+    extract_goal_completion_input, score_goal_completion,
+};
 use evalforge_core::metrics::tool_accuracy::{
     extract_tool_accuracy_input, score_tool_accuracy, ToolAccuracyResult,
 };
@@ -146,6 +149,29 @@ fn main() {
                             }
                         } else {
                             score_tool_accuracy(&input, threshold).into()
+                        };
+                        results.push((name, scored));
+                    }
+                    "goal_completion" => {
+                        let input = extract_goal_completion_input(&t);
+                        let scored = if mock {
+                            MetricScore {
+                                score: 0.85,
+                                pass: true,
+                                reason: "Mock score — goal appears completed".to_string(),
+                            }
+                        } else {
+                            match score_goal_completion(&input, &api_key, threshold) {
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                },
+                                Err(e) => {
+                                    eprintln!("Error scoring goal_completion: {}", e);
+                                    std::process::exit(1);
+                                }
+                            }
                         };
                         results.push((name, scored));
                     }
