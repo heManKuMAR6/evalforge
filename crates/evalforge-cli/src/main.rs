@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
 use evalforge_core::metrics::faithfulness::{extract_faithfulness_input, score_faithfulness};
+use evalforge_core::metrics::context_precision::{
+    extract_context_precision_input, score_context_precision,
+};
 use evalforge_core::metrics::g_eval::{extract_g_eval_input, score_g_eval};
 use evalforge_core::metrics::goal_completion::{
     extract_goal_completion_input, score_goal_completion,
@@ -285,6 +288,32 @@ fn main() {
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring g_eval: {}", e);
+                                    std::process::exit(1);
+                                }
+                            }
+                        };
+                        results.push((name, scored));
+                    }
+                    "context_precision" => {
+                        let input = extract_context_precision_input(&t);
+                        let scored = if mock {
+                            MetricScore {
+                                score: 0.80,
+                                pass: true,
+                                reason: "Mock score — all retrieved context was relevant"
+                                    .to_string(),
+                                rubric: None,
+                            }
+                        } else {
+                            match score_context_precision(&input, &api_key, threshold) {
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                    rubric: None,
+                                },
+                                Err(e) => {
+                                    eprintln!("Error scoring context_precision: {}", e);
                                     std::process::exit(1);
                                 }
                             }

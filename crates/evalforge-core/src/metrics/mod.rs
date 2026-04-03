@@ -3,3 +3,4 @@ pub mod tool_accuracy;
 pub mod goal_completion;
 pub mod hallucination;
 pub mod g_eval;
+pub mod context_precision;
