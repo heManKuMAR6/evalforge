@@ -4,3 +4,4 @@ pub mod goal_completion;
 pub mod hallucination;
 pub mod g_eval;
 pub mod context_precision;
+pub mod answer_relevance;

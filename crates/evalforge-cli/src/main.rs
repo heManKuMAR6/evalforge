@@ -1,5 +1,8 @@
 use chrono::Utc;
 use clap::{Parser, Subcommand};
+use evalforge_core::metrics::answer_relevance::{
+    extract_answer_relevance_input, score_answer_relevance,
+};
 use evalforge_core::metrics::faithfulness::{extract_faithfulness_input, score_faithfulness};
 use evalforge_core::metrics::context_precision::{
     extract_context_precision_input, score_context_precision,
@@ -341,6 +344,36 @@ fn main() {
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring context_precision: {}", e);
+                                    std::process::exit(1);
+                                }
+                            }
+                        };
+                        results.push((name, scored));
+                    }
+                    "answer_relevance" => {
+                        let input = extract_answer_relevance_input(&t);
+                        let scored = if mock {
+                            MetricScore {
+                                score: 0.95,
+                                pass: true,
+                                reason: "Mock score — answer directly addresses the question"
+                                    .to_string(),
+                                rubric: None,
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
+                            }
+                        } else {
+                            match score_answer_relevance(&input, &api_key, threshold) {
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                    rubric: None,
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
+                                },
+                                Err(e) => {
+                                    eprintln!("Error scoring answer_relevance: {}", e);
                                     std::process::exit(1);
                                 }
                             }
