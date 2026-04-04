@@ -1,3 +1,4 @@
+use chrono::Utc;
 use clap::{Parser, Subcommand};
 use evalforge_core::metrics::faithfulness::{extract_faithfulness_input, score_faithfulness};
 use evalforge_core::metrics::context_precision::{
@@ -74,6 +75,8 @@ struct MetricScore {
     pass: bool,
     reason: String,
     rubric: Option<String>,
+    method: &'static str,
+    judge_model: &'static str,
 }
 
 impl From<ToolAccuracyResult> for MetricScore {
@@ -83,6 +86,8 @@ impl From<ToolAccuracyResult> for MetricScore {
             pass: r.pass,
             reason: r.reason,
             rubric: None,
+            method: "deterministic",
+            judge_model: "none",
         }
     }
 }
@@ -179,6 +184,8 @@ fn main() {
                                 pass: true,
                                 reason: "Mock score — skipping live API call".to_string(),
                                 rubric: None,
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
                             }
                         } else {
                             match score_faithfulness(&input, &api_key, threshold) {
@@ -187,6 +194,8 @@ fn main() {
                                     pass: r.pass,
                                     reason: r.reason,
                                     rubric: None,
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring faithfulness: {}", e);
@@ -204,6 +213,8 @@ fn main() {
                                 pass: true,
                                 reason: "Mock score — all expected tools used".to_string(),
                                 rubric: None,
+                                method: "deterministic",
+                                judge_model: "none",
                             }
                         } else {
                             score_tool_accuracy(&input, threshold).into()
@@ -218,6 +229,8 @@ fn main() {
                                 pass: true,
                                 reason: "Mock score — goal appears completed".to_string(),
                                 rubric: None,
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
                             }
                         } else {
                             match score_goal_completion(&input, &api_key, threshold) {
@@ -226,6 +239,8 @@ fn main() {
                                     pass: r.pass,
                                     reason: r.reason,
                                     rubric: None,
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring goal_completion: {}", e);
@@ -243,6 +258,8 @@ fn main() {
                                 pass: true,
                                 reason: "Mock score — no hallucinations detected".to_string(),
                                 rubric: None,
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
                             }
                         } else {
                             match score_hallucination(&input, &api_key, threshold) {
@@ -251,6 +268,8 @@ fn main() {
                                     pass: r.pass,
                                     reason: r.reason,
                                     rubric: None,
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring hallucination: {}", e);
@@ -276,6 +295,8 @@ fn main() {
                                 pass: true,
                                 reason: "Mock score — response meets rubric criteria".to_string(),
                                 rubric: Some(rubric_str.to_string()),
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
                             }
                         } else {
                             let input = extract_g_eval_input(&t, rubric_str);
@@ -285,6 +306,8 @@ fn main() {
                                     pass: r.pass,
                                     reason: r.reason,
                                     rubric: Some(r.rubric),
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring g_eval: {}", e);
@@ -303,6 +326,8 @@ fn main() {
                                 reason: "Mock score — all retrieved context was relevant"
                                     .to_string(),
                                 rubric: None,
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
                             }
                         } else {
                             match score_context_precision(&input, &api_key, threshold) {
@@ -311,6 +336,8 @@ fn main() {
                                     pass: r.pass,
                                     reason: r.reason,
                                     rubric: None,
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring context_precision: {}", e);
@@ -350,6 +377,7 @@ fn main() {
             }
 
             if let Some(output_path) = &output {
+                let run_timestamp = Utc::now().to_rfc3339();
                 let metrics_json: Vec<serde_json::Value> = results
                     .iter()
                     .map(|(name, r)| {
@@ -358,18 +386,21 @@ fn main() {
                             "score": r.score,
                             "passed": r.pass,
                             "reason": r.reason,
+                            "method": r.method,
+                            "judge_model": r.judge_model,
+                            "threshold": threshold,
+                            "timestamp": run_timestamp,
                         })
                     })
                     .collect();
 
                 let output_json = serde_json::json!({
+                    "evalforge_version": "0.6.0",
                     "trace_id": t.trace_id,
                     "framework": t.metadata.framework,
-                    "model": t.metadata.model,
-                    "agent_name": t.metadata.agent_name,
-                    "timestamp": t.timestamp,
-                    "metrics": metrics_json,
+                    "timestamp": run_timestamp,
                     "overall_passed": all_pass,
+                    "metrics": metrics_json,
                 });
 
                 let path = std::path::Path::new(output_path);
