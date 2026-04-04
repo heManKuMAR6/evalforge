@@ -189,6 +189,23 @@ EvalForge uses a simple universal trace format that any framework can map to:
 | `g_eval` | Custom LLM-as-judge with user-defined rubric | ✅ v0.3 |
 | `context_precision` | How much retrieved context was relevant? | ✅ v0.6 |
 
+## How EvalForge compares
+
+| | EvalForge | Promptfoo | Arize | LangSmith |
+|---|---|---|---|---|
+| Open source | ✅ | ✅ | ❌ | ❌ |
+| Self-hostable | ✅ | ✅ | ❌ | ❌ |
+| Framework agnostic | ✅ | ✅ | ✅ | ❌ LangChain only |
+| Evaluates real runs | ✅ | ❌ pre-deploy only | ✅ | ✅ |
+| CI/CD exit codes | ✅ | ✅ | ❌ | ❌ |
+| Trend analysis | ✅ | ❌ | ✅ | ❌ |
+| No data leaves your infra | ✅ | ✅ | ❌ | ❌ |
+| Free | ✅ | ✅ | ❌ | ❌ paid tiers |
+
+EvalForge is not trying to replace enterprise observability 
+platforms. It is the lightweight, open source, CI-first 
+evaluation layer that individual developers and small teams 
+can use without a sales call or cloud account.
 ## CI/CD Integration
 
 Add EvalForge to your GitHub Actions pipeline:
