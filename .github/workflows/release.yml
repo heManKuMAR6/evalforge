@@ -103,9 +103,32 @@ jobs:
           name: wheels-windows
           path: target/wheels/
 
+  build-pure-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install hatchling
+        run: pip install hatchling
+
+      - name: Build pure Python wheel
+        run: cd sdks/python && python -m hatchling build --target wheel
+
+      - name: Upload pure Python wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-pure-python
+          path: sdks/python/dist/*.whl
+
   publish:
     runs-on: ubuntu-latest
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos, build-windows, build-pure-python]
     permissions:
       id-token: write
       contents: read
