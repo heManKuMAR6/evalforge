@@ -1,0 +1,18 @@
+{
+  "labels": [
+    {
+      "trace_id": "trace-001",
+      "metric": "faithfulness",
+      "human_score": 0.8,
+      "human_label": "pass",
+      "notes": "Answer mostly faithful but adds one unsupported detail"
+    },
+    {
+      "trace_id": "trace-simple-001",
+      "metric": "faithfulness",
+      "human_score": 1.0,
+      "human_label": "pass",
+      "notes": "Perfect — no tool calls, direct factual answer"
+    }
+  ]
+}

@@ -249,6 +249,50 @@ Overall: REGRESSION DETECTED
 
 Exit code 1 when regression detected — plugs straight into any CI pipeline.
 
+## Calibration
+
+Validate your LLM judge against human labels before trusting it in CI.
+
+```bash
+evalforge calibrate \
+  --traces traces/ \
+  --labels labels.json \
+  --metrics faithfulness
+```
+
+Output:
+```
+EvalForge — Calibration Report
+─────────────────────────────
+Metric:           faithfulness
+Traces evaluated: 20
+─────────────────────────────
+Agreement:        17/20  (85%)
+Too generous:     2/20   (10%)
+Too harsh:        1/20   (5%)
+─────────────────────────────
+Avg human score:  0.82
+Avg judge score:  0.84
+Score delta:      +0.02
+─────────────────────────────
+Recommended threshold: 0.82
+```
+
+Labels format (`labels.json`):
+```json
+{
+  "labels": [
+    {
+      "trace_id": "run-001",
+      "metric": "faithfulness",
+      "human_score": 0.8,
+      "human_label": "pass",
+      "notes": "Optional reviewer notes"
+    }
+  ]
+}
+```
+
 ### Python SDK
 
 ```python
@@ -296,7 +340,9 @@ python examples/openai-agents/basic_eval.py
 - [x] v0.5 — framework adapters (LangChain, CrewAI, AutoGen) + trend CLI
 - [x] v0.6 — context_precision + JS SDK
 - [x] v0.7 — answer_relevance metric + audit log fields in --output JSON
-- [ ] v1.0 — web dashboard + team collaboration
+- [x] v0.8 — calibrate command + Vercel AI SDK adapter
+- [ ] v0.9 — web dashboard, team collaboration
+- [ ] v1.0 — stable API, full docs site
 
 ## Contributing
 
