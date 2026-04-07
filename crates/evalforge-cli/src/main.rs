@@ -18,7 +18,7 @@ use evalforge_core::metrics::tool_accuracy::{
 use evalforge_core::trace::load_trace;
 
 #[derive(Parser)]
-#[command(name = "evalforge", version = "0.8.0")]
+#[command(name = "evalforge", version = "0.9.0")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -416,7 +416,7 @@ fn main() {
                 }
             };
 
-            println!("EvalForge v0.8.0");
+            println!("EvalForge v0.9.0");
             println!("─────────────────────────────");
             println!("Trace ID:   {}", t.trace_id);
             println!("Framework:  {}", t.metadata.framework);
