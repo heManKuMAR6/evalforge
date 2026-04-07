@@ -188,6 +188,7 @@ EvalForge uses a simple universal trace format that any framework can map to:
 | `hallucination` | Did the agent make up facts not in context? | ✅ v0.2 |
 | `g_eval` | Custom LLM-as-judge with user-defined rubric | ✅ v0.3 |
 | `context_precision` | How much retrieved context was relevant? | ✅ v0.6 |
+| `answer_relevance` | Does the answer directly address the question asked? | ✅ v0.7 |
 
 ## How EvalForge compares
 
@@ -293,8 +294,8 @@ python examples/openai-agents/basic_eval.py
 - [x] v0.3 — g_eval custom rubric metric
 - [x] v0.4 — platform wheels + RunTrendAnalyzer + --output flag
 - [x] v0.5 — framework adapters (LangChain, CrewAI, AutoGen) + trend CLI
-- [ ] v0.6 — context_precision + JS SDK
-- [ ] v0.7 — OpenAI Agents SDK adapter + Mastra adapter
+- [x] v0.6 — context_precision + JS SDK
+- [x] v0.7 — answer_relevance metric + audit log fields in --output JSON
 - [ ] v1.0 — web dashboard + team collaboration
 
 ## Contributing

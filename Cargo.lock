@@ -243,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "evalforge-cli"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "clap",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "evalforge-core"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "reqwest",
