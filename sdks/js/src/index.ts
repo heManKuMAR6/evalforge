@@ -6,6 +6,7 @@ import { findBinary } from './binary';
 import { EvalResult, RunOptions, Trace } from './types';
 
 export { EvalResult, MetricResult, RunOptions, Trace } from './types';
+export * from './adapters';
 
 function parseOutput(output: string): EvalResult {
   const metrics = [];
