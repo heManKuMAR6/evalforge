@@ -99,6 +99,21 @@ enum Commands {
         mock: bool,
     },
 
+    /// Compare before/after eval result directories to detect regressions or improvements
+    Compare {
+        /// Path to directory containing before JSON result files
+        #[arg(long)]
+        before: String,
+
+        /// Path to directory containing after JSON result files
+        #[arg(long)]
+        after: String,
+
+        /// Comma-separated metrics to compare (default: all found)
+        #[arg(long)]
+        metrics: Option<String>,
+    },
+
     /// Analyze score trends across sequential eval run outputs
     Trend {
         /// Path to directory containing JSON run output files
@@ -394,6 +409,16 @@ fn batch_outcome(pass_flags: &[bool]) -> (usize, usize, f64) {
         passed as f64 / total as f64 * 100.0
     };
     (passed, total, rate)
+}
+
+fn delta_symbol(delta: f64) -> &'static str {
+    if delta > 0.05 {
+        "✅"
+    } else if delta < -0.05 {
+        "⚠"
+    } else {
+        "→"
+    }
 }
 
 fn main() {
@@ -1071,6 +1096,174 @@ fn main() {
             }
         }
 
+        Commands::Compare {
+            before,
+            after,
+            metrics,
+        } => {
+            // Helper to load all JSON files from a directory and return (trace_id, metric_name -> score) maps
+            fn load_results_dir(
+                dir_path: &str,
+            ) -> Result<
+                std::collections::HashMap<String, std::collections::HashMap<String, f64>>,
+                String,
+            > {
+                let dir = std::path::Path::new(dir_path);
+                let mut paths: Vec<std::path::PathBuf> = match std::fs::read_dir(dir) {
+                    Ok(entries) => entries
+                        .filter_map(|e| e.ok())
+                        .map(|e| e.path())
+                        .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("json"))
+                        .collect(),
+                    Err(e) => return Err(format!("cannot read directory '{}': {}", dir_path, e)),
+                };
+                paths.sort();
+
+                let mut map: std::collections::HashMap<
+                    String,
+                    std::collections::HashMap<String, f64>,
+                > = std::collections::HashMap::new();
+                for path in &paths {
+                    let text = match std::fs::read_to_string(path) {
+                        Ok(t) => t,
+                        Err(_) => continue,
+                    };
+                    let data: serde_json::Value = match serde_json::from_str(&text) {
+                        Ok(v) => v,
+                        Err(_) => continue,
+                    };
+                    let trace_id = match data["trace_id"].as_str() {
+                        Some(id) => id.to_string(),
+                        None => continue,
+                    };
+                    let mut metric_map: std::collections::HashMap<String, f64> =
+                        std::collections::HashMap::new();
+                    if let Some(arr) = data["metrics"].as_array() {
+                        for entry in arr {
+                            if let (Some(name), Some(score)) =
+                                (entry["metric"].as_str(), entry["score"].as_f64())
+                            {
+                                metric_map.insert(name.to_string(), score);
+                            }
+                        }
+                    }
+                    map.insert(trace_id, metric_map);
+                }
+                Ok(map)
+            }
+
+            let before_map = match load_results_dir(&before) {
+                Ok(m) => m,
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    std::process::exit(1);
+                }
+            };
+            let after_map = match load_results_dir(&after) {
+                Ok(m) => m,
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    std::process::exit(1);
+                }
+            };
+
+            // Find matched trace IDs
+            let mut matched_ids: Vec<String> = before_map
+                .keys()
+                .filter(|id| after_map.contains_key(*id))
+                .cloned()
+                .collect();
+            matched_ids.sort();
+
+            // Gather all metric names across matched traces (or use --metrics filter)
+            let all_metric_names: Vec<String> = {
+                let mut names: std::collections::HashSet<String> =
+                    std::collections::HashSet::new();
+                for id in &matched_ids {
+                    if let Some(bm) = before_map.get(id) {
+                        names.extend(bm.keys().cloned());
+                    }
+                    if let Some(am) = after_map.get(id) {
+                        names.extend(am.keys().cloned());
+                    }
+                }
+                let mut sorted: Vec<String> = names.into_iter().collect();
+                sorted.sort();
+                sorted
+            };
+
+            let metric_names: Vec<String> = match &metrics {
+                Some(s) => s
+                    .split(',')
+                    .map(|m| m.trim().to_string())
+                    .filter(|m| !m.is_empty())
+                    .collect(),
+                None => all_metric_names,
+            };
+
+            println!("EvalForge — Comparison Report");
+            println!("─────────────────────────────");
+            println!("Before:  {}  ({} traces)", before, before_map.len());
+            println!("After:   {}  ({} traces)", after, after_map.len());
+            println!("Matched: {} traces", matched_ids.len());
+            println!("─────────────────────────────");
+            println!("{:<18} {:<9} {:<9} {}", "Metric", "Before", "After", "Delta");
+
+            let mut improved = 0usize;
+            let mut unchanged = 0usize;
+            let mut regressed = 0usize;
+
+            for metric in &metric_names {
+                // Average before/after scores across all matched traces
+                let mut before_scores: Vec<f64> = Vec::new();
+                let mut after_scores: Vec<f64> = Vec::new();
+                for id in &matched_ids {
+                    if let Some(s) = before_map.get(id).and_then(|m| m.get(metric)) {
+                        before_scores.push(*s);
+                    }
+                    if let Some(s) = after_map.get(id).and_then(|m| m.get(metric)) {
+                        after_scores.push(*s);
+                    }
+                }
+                if before_scores.is_empty() && after_scores.is_empty() {
+                    continue;
+                }
+                let avg_before = before_scores.iter().sum::<f64>()
+                    / before_scores.len().max(1) as f64;
+                let avg_after =
+                    after_scores.iter().sum::<f64>() / after_scores.len().max(1) as f64;
+                let delta = avg_after - avg_before;
+                let symbol = delta_symbol(delta);
+                let sign = if delta >= 0.0 { "+" } else { "" };
+                println!(
+                    "{:<18} {:<9.2} {:<9.2} {}{:.2} {}",
+                    metric, avg_before, avg_after, sign, delta, symbol
+                );
+
+                match symbol {
+                    "✅" => improved += 1,
+                    "⚠" => regressed += 1,
+                    _ => unchanged += 1,
+                }
+            }
+
+            println!("─────────────────────────────");
+            println!("Summary");
+            println!("─────────────────────────────");
+            println!("Improved metrics:  {}", improved);
+            println!("Unchanged metrics: {}", unchanged);
+            println!("Regressed metrics: {}", regressed);
+            println!("─────────────────────────────");
+            if regressed > 0 {
+                println!("Overall: REGRESSION ⚠");
+                std::process::exit(1);
+            } else if improved > 0 {
+                println!("Overall: IMPROVEMENT ✅");
+            } else {
+                println!("Overall: UNCHANGED →");
+            }
+        }
+
         Commands::Trend {
             history,
             metrics,
@@ -1195,7 +1388,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{batch_outcome, calibrate_agreement, linear_slope, Agreement};
+    use super::{batch_outcome, calibrate_agreement, delta_symbol, linear_slope, Agreement};
 
     #[test]
     fn test_batch_all_pass() {
@@ -1287,5 +1480,48 @@ mod tests {
         // y = [0.0, 1.0]  →  slope = 1.0
         let slope = linear_slope(&[0.0, 1.0]).unwrap();
         assert!((slope - 1.0).abs() < 1e-9);
+    }
+
+    // --- compare tests ---
+
+    #[test]
+    fn test_compare_improvement() {
+        let before = 0.72_f64;
+        let after = 0.91_f64;
+        let delta = after - before;
+        assert!((delta - 0.19).abs() < 1e-9, "delta should be +0.19, got {}", delta);
+        assert_eq!(delta_symbol(delta), "✅");
+    }
+
+    #[test]
+    fn test_compare_regression() {
+        let before = 0.91_f64;
+        let after = 0.65_f64;
+        let delta = after - before;
+        assert!((delta - (-0.26)).abs() < 1e-9, "delta should be -0.26, got {}", delta);
+        assert_eq!(delta_symbol(delta), "⚠");
+    }
+
+    #[test]
+    fn test_compare_unchanged() {
+        let before = 0.85_f64;
+        let after = 0.87_f64;
+        let delta = after - before;
+        assert!((delta - 0.02).abs() < 1e-9, "delta should be +0.02, got {}", delta);
+        assert_eq!(delta_symbol(delta), "→");
+    }
+
+    #[test]
+    fn test_compare_delta_symbol() {
+        // improvement: delta > +0.05
+        assert_eq!(delta_symbol(0.10), "✅");
+        assert_eq!(delta_symbol(0.06), "✅");
+        // unchanged: -0.05 <= delta <= +0.05
+        assert_eq!(delta_symbol(0.05), "→");
+        assert_eq!(delta_symbol(0.0), "→");
+        assert_eq!(delta_symbol(-0.05), "→");
+        // regression: delta < -0.05
+        assert_eq!(delta_symbol(-0.06), "⚠");
+        assert_eq!(delta_symbol(-0.30), "⚠");
     }
 }
