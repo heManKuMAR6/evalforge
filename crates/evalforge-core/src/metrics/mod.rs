@@ -5,3 +5,6 @@ pub mod hallucination;
 pub mod g_eval;
 pub mod context_precision;
 pub mod answer_relevance;
+pub mod code_correctness;
+pub mod code_quality;
+pub mod code_security;

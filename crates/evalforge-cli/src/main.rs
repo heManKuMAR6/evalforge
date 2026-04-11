@@ -15,6 +15,11 @@ use evalforge_core::metrics::hallucination::{extract_hallucination_input, score_
 use evalforge_core::metrics::tool_accuracy::{
     extract_tool_accuracy_input, score_tool_accuracy, ToolAccuracyResult,
 };
+use evalforge_core::metrics::code_correctness::{
+    extract_code_correctness_input, score_code_correctness,
+};
+use evalforge_core::metrics::code_quality::{extract_code_quality_input, score_code_quality};
+use evalforge_core::metrics::code_security::{extract_code_security_input, score_code_security};
 use evalforge_core::trace::load_trace;
 
 #[derive(Parser)]
@@ -407,6 +412,90 @@ fn score_metric(
                 }
             })
         }
+        "code_correctness" => {
+            let input = extract_code_correctness_input(t);
+            Some(if mock {
+                MetricScore {
+                    score: 0.85,
+                    pass: true,
+                    reason: "Mock — code appears correct".to_string(),
+                    rubric: None,
+                    method: "llm_judge",
+                    judge_model: "claude-haiku-4-5-20251001",
+                }
+            } else {
+                match score_code_correctness(&input, api_key, threshold) {
+                    Ok(r) => MetricScore {
+                        score: r.score,
+                        pass: r.pass,
+                        reason: r.reason,
+                        rubric: None,
+                        method: "llm_judge",
+                        judge_model: "claude-haiku-4-5-20251001",
+                    },
+                    Err(e) => {
+                        eprintln!("Error scoring code_correctness: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+            })
+        }
+        "code_quality" => {
+            let input = extract_code_quality_input(t);
+            Some(if mock {
+                MetricScore {
+                    score: 0.80,
+                    pass: true,
+                    reason: "Mock — code quality is good".to_string(),
+                    rubric: None,
+                    method: "llm_judge",
+                    judge_model: "claude-haiku-4-5-20251001",
+                }
+            } else {
+                match score_code_quality(&input, api_key, threshold) {
+                    Ok(r) => MetricScore {
+                        score: r.score,
+                        pass: r.pass,
+                        reason: r.reason,
+                        rubric: None,
+                        method: "llm_judge",
+                        judge_model: "claude-haiku-4-5-20251001",
+                    },
+                    Err(e) => {
+                        eprintln!("Error scoring code_quality: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+            })
+        }
+        "code_security" => {
+            let input = extract_code_security_input(t);
+            Some(if mock {
+                MetricScore {
+                    score: 0.95,
+                    pass: true,
+                    reason: "Mock — no security issues found".to_string(),
+                    rubric: None,
+                    method: "llm_judge",
+                    judge_model: "claude-haiku-4-5-20251001",
+                }
+            } else {
+                match score_code_security(&input, api_key, threshold) {
+                    Ok(r) => MetricScore {
+                        score: r.score,
+                        pass: r.pass,
+                        reason: r.reason,
+                        rubric: None,
+                        method: "llm_judge",
+                        judge_model: "claude-haiku-4-5-20251001",
+                    },
+                    Err(e) => {
+                        eprintln!("Error scoring code_security: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+            })
+        }
         other => {
             eprintln!("Warning: unknown metric '{}', skipping.", other);
             None
@@ -713,6 +802,93 @@ fn main() {
                                 },
                                 Err(e) => {
                                     eprintln!("Error scoring answer_relevance: {}", e);
+                                    std::process::exit(1);
+                                }
+                            }
+                        };
+                        results.push((name, scored));
+                    }
+                    "code_correctness" => {
+                        let input = extract_code_correctness_input(&t);
+                        let scored = if mock {
+                            MetricScore {
+                                score: 0.85,
+                                pass: true,
+                                reason: "Mock — code appears correct".to_string(),
+                                rubric: None,
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
+                            }
+                        } else {
+                            match score_code_correctness(&input, &api_key, threshold) {
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                    rubric: None,
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
+                                },
+                                Err(e) => {
+                                    eprintln!("Error scoring code_correctness: {}", e);
+                                    std::process::exit(1);
+                                }
+                            }
+                        };
+                        results.push((name, scored));
+                    }
+                    "code_quality" => {
+                        let input = extract_code_quality_input(&t);
+                        let scored = if mock {
+                            MetricScore {
+                                score: 0.80,
+                                pass: true,
+                                reason: "Mock — code quality is good".to_string(),
+                                rubric: None,
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
+                            }
+                        } else {
+                            match score_code_quality(&input, &api_key, threshold) {
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                    rubric: None,
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
+                                },
+                                Err(e) => {
+                                    eprintln!("Error scoring code_quality: {}", e);
+                                    std::process::exit(1);
+                                }
+                            }
+                        };
+                        results.push((name, scored));
+                    }
+                    "code_security" => {
+                        let input = extract_code_security_input(&t);
+                        let scored = if mock {
+                            MetricScore {
+                                score: 0.95,
+                                pass: true,
+                                reason: "Mock — no security issues found".to_string(),
+                                rubric: None,
+                                method: "llm_judge",
+                                judge_model: "claude-haiku-4-5-20251001",
+                            }
+                        } else {
+                            match score_code_security(&input, &api_key, threshold) {
+                                Ok(r) => MetricScore {
+                                    score: r.score,
+                                    pass: r.pass,
+                                    reason: r.reason,
+                                    rubric: None,
+                                    method: "llm_judge",
+                                    judge_model: "claude-haiku-4-5-20251001",
+                                },
+                                Err(e) => {
+                                    eprintln!("Error scoring code_security: {}", e);
                                     std::process::exit(1);
                                 }
                             }
