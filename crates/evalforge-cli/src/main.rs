@@ -132,6 +132,21 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         exit_on_regression: bool,
     },
+
+    /// Generate a self-contained HTML report from batch result JSON files
+    Report {
+        /// Directory containing result JSON files from batch --output
+        #[arg(long)]
+        results: String,
+
+        /// Path to save the HTML file (e.g. report.html)
+        #[arg(long)]
+        output: String,
+
+        /// Title for the report
+        #[arg(long, default_value = "EvalForge Report")]
+        title: String,
+    },
 }
 
 struct MetricScore {
@@ -409,6 +424,23 @@ fn batch_outcome(pass_flags: &[bool]) -> (usize, usize, f64) {
         passed as f64 / total as f64 * 100.0
     };
     (passed, total, rate)
+}
+
+/// Compute pass rate (0–100) from a slice of overall-pass booleans.
+fn report_pass_rate(flags: &[bool]) -> f64 {
+    if flags.is_empty() {
+        return 0.0;
+    }
+    let passed = flags.iter().filter(|&&p| p).count();
+    passed as f64 / flags.len() as f64 * 100.0
+}
+
+/// Compute the arithmetic mean of a slice of scores.
+fn report_metric_average(scores: &[f64]) -> f64 {
+    if scores.is_empty() {
+        return 0.0;
+    }
+    scores.iter().sum::<f64>() / scores.len() as f64
 }
 
 fn delta_symbol(delta: f64) -> &'static str {
@@ -1383,12 +1415,218 @@ fn main() {
                 println!("Overall: STABLE");
             }
         }
+
+        Commands::Report {
+            results,
+            output,
+            title,
+        } => {
+            // Read all JSON files from the results directory
+            let dir = std::path::Path::new(&results);
+            let mut paths: Vec<std::path::PathBuf> = match std::fs::read_dir(dir) {
+                Ok(entries) => entries
+                    .filter_map(|e| e.ok())
+                    .map(|e| e.path())
+                    .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("json"))
+                    .collect(),
+                Err(e) => {
+                    eprintln!(
+                        "Error: cannot read results directory '{}': {}",
+                        results, e
+                    );
+                    std::process::exit(1);
+                }
+            };
+            paths.sort();
+
+            if paths.is_empty() {
+                eprintln!("Error: no JSON files found in '{}'", results);
+                std::process::exit(1);
+            }
+
+            // Parse each result file into (trace_id, overall_passed, Vec<(metric, score, passed)>)
+            let mut trace_data: Vec<(String, bool, Vec<(String, f64, bool)>)> = Vec::new();
+            for path in &paths {
+                let text = match std::fs::read_to_string(path) {
+                    Ok(t) => t,
+                    Err(_) => continue,
+                };
+                let data: serde_json::Value = match serde_json::from_str(&text) {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                let trace_id = data["trace_id"].as_str().unwrap_or("unknown").to_string();
+                let overall_passed = data["overall_passed"].as_bool().unwrap_or(false);
+                let mut metrics: Vec<(String, f64, bool)> = Vec::new();
+                if let Some(arr) = data["metrics"].as_array() {
+                    for m in arr {
+                        if let (Some(name), Some(score)) =
+                            (m["metric"].as_str(), m["score"].as_f64())
+                        {
+                            metrics.push((
+                                name.to_string(),
+                                score,
+                                m["passed"].as_bool().unwrap_or(false),
+                            ));
+                        }
+                    }
+                }
+                trace_data.push((trace_id, overall_passed, metrics));
+            }
+
+            // Summary stats
+            let total = trace_data.len();
+            let pass_flags: Vec<bool> = trace_data.iter().map(|(_, p, _)| *p).collect();
+            let passed = pass_flags.iter().filter(|&&p| p).count();
+            let failed = total - passed;
+            let pass_rate = report_pass_rate(&pass_flags);
+
+            // Per-metric average scores
+            let mut metric_acc: std::collections::HashMap<String, Vec<f64>> =
+                std::collections::HashMap::new();
+            for (_, _, metrics) in &trace_data {
+                for (name, score, _) in metrics {
+                    metric_acc.entry(name.clone()).or_default().push(*score);
+                }
+            }
+            let mut all_metrics: Vec<String> = metric_acc.keys().cloned().collect();
+            all_metrics.sort();
+
+            let timestamp = Utc::now().to_rfc3339();
+            let pass_rate_str = format!("{:.1}%", pass_rate);
+
+            // Metrics summary table rows
+            let metric_rows: String = all_metrics
+                .iter()
+                .map(|name| {
+                    let avg = report_metric_average(
+                        metric_acc.get(name).map(|v| v.as_slice()).unwrap_or(&[]),
+                    );
+                    format!("      <tr><td>{}</td><td>{:.3}</td></tr>", name, avg)
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            // Per-trace table
+            let metric_headers: String = all_metrics
+                .iter()
+                .map(|name| format!("<th>{}</th>", name))
+                .collect::<Vec<_>>()
+                .join("");
+
+            let trace_rows: String = trace_data
+                .iter()
+                .map(|(trace_id, overall_passed, metrics)| {
+                    let overall_cls = if *overall_passed { "pass-badge" } else { "fail-badge" };
+                    let overall_lbl = if *overall_passed { "PASS" } else { "FAIL" };
+                    let cells: String = all_metrics
+                        .iter()
+                        .map(|name| match metrics.iter().find(|(n, _, _)| n == name) {
+                            Some((_, score, passed)) => {
+                                let cls = if *passed { "pass-badge" } else { "fail-badge" };
+                                let lbl = if *passed { "PASS" } else { "FAIL" };
+                                format!(
+                                    "<td>{:.2} <span class=\"{}\">{}</span></td>",
+                                    score, cls, lbl
+                                )
+                            }
+                            None => "<td>—</td>".to_string(),
+                        })
+                        .collect::<Vec<_>>()
+                        .join("");
+                    format!(
+                        "      <tr><td>{}</td>{}<td><span class=\"{}\">{}</span></td></tr>",
+                        trace_id, cells, overall_cls, overall_lbl
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let html = format!(
+                r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title}</title>
+<style>
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 32px; }}
+h1 {{ color: #7c3aed; font-size: 2rem; margin-bottom: 8px; }}
+.subtitle {{ color: #8b949e; margin-bottom: 32px; font-size: 0.9rem; }}
+.cards {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }}
+.card {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; text-align: center; }}
+.card-value {{ font-size: 2rem; font-weight: 700; color: #c9d1d9; }}
+.card-label {{ color: #8b949e; font-size: 0.85rem; margin-top: 4px; }}
+.card.pass .card-value {{ color: #3fb950; }}
+.card.fail .card-value {{ color: #f85149; }}
+.card.rate .card-value {{ color: #7c3aed; }}
+section {{ margin-bottom: 32px; }}
+h2 {{ color: #c9d1d9; font-size: 1.1rem; margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }}
+table {{ width: 100%; border-collapse: collapse; }}
+th {{ background: #161b22; color: #8b949e; font-size: 0.8rem; text-transform: uppercase; padding: 10px 14px; text-align: left; }}
+td {{ padding: 10px 14px; border-bottom: 1px solid #21262d; }}
+tr:hover td {{ background: #161b22; }}
+.pass-badge {{ color: #3fb950; font-weight: 600; }}
+.fail-badge {{ color: #f85149; font-weight: 600; }}
+</style>
+</head>
+<body>
+<h1>{title}</h1>
+<p class="subtitle">Generated: {timestamp}</p>
+<div class="cards">
+  <div class="card"><div class="card-value">{total}</div><div class="card-label">Total Traces</div></div>
+  <div class="card pass"><div class="card-value">{passed}</div><div class="card-label">Passed</div></div>
+  <div class="card fail"><div class="card-value">{failed}</div><div class="card-label">Failed</div></div>
+  <div class="card rate"><div class="card-value">{pass_rate_str}</div><div class="card-label">Pass Rate</div></div>
+</div>
+<section>
+  <h2>Metrics Summary</h2>
+  <table>
+    <thead><tr><th>Metric</th><th>Avg Score</th></tr></thead>
+    <tbody>
+{metric_rows}
+    </tbody>
+  </table>
+</section>
+<section>
+  <h2>Per-Trace Results</h2>
+  <table>
+    <thead><tr><th>Trace ID</th>{metric_headers}<th>Overall</th></tr></thead>
+    <tbody>
+{trace_rows}
+    </tbody>
+  </table>
+</section>
+</body>
+</html>"#,
+                title = title,
+                timestamp = timestamp,
+                total = total,
+                passed = passed,
+                failed = failed,
+                pass_rate_str = pass_rate_str,
+                metric_rows = metric_rows,
+                metric_headers = metric_headers,
+                trace_rows = trace_rows,
+            );
+
+            if let Err(e) = std::fs::write(&output, &html) {
+                eprintln!("Error: failed to write report to '{}': {}", output, e);
+                std::process::exit(1);
+            }
+
+            println!("Report saved to: {}", output);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{batch_outcome, calibrate_agreement, delta_symbol, linear_slope, Agreement};
+    use super::{
+        batch_outcome, calibrate_agreement, delta_symbol, linear_slope, report_metric_average,
+        report_pass_rate, Agreement,
+    };
 
     #[test]
     fn test_batch_all_pass() {
@@ -1523,5 +1761,23 @@ mod tests {
         // regression: delta < -0.05
         assert_eq!(delta_symbol(-0.06), "⚠");
         assert_eq!(delta_symbol(-0.30), "⚠");
+    }
+
+    // --- report tests ---
+
+    #[test]
+    fn test_report_pass_rate() {
+        // 3 pass, 1 fail → 75%
+        let flags = vec![true, true, true, false];
+        let rate = report_pass_rate(&flags);
+        assert!((rate - 75.0).abs() < 1e-9, "expected 75.0, got {}", rate);
+    }
+
+    #[test]
+    fn test_report_metric_average() {
+        // faithfulness scores 0.8 and 0.9 → average 0.85
+        let scores = vec![0.8_f64, 0.9_f64];
+        let avg = report_metric_average(&scores);
+        assert!((avg - 0.85).abs() < 1e-9, "expected 0.85, got {}", avg);
     }
 }
