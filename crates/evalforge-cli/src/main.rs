@@ -171,6 +171,30 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         mock: bool,
     },
+
+    /// Test whether an agent reliably uses a specific skill/tool
+    Skills {
+        #[command(subcommand)]
+        command: SkillsCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum SkillsCommands {
+    /// Test skill invocation accuracy, argument correctness, and result utilization
+    Test {
+        /// Name of the skill/tool to test (e.g. web_search)
+        #[arg(long)]
+        skill: String,
+
+        /// Path to directory containing trace JSON files
+        #[arg(long)]
+        traces: String,
+
+        /// Use mock mode (reads real trace data)
+        #[arg(long, default_value_t = false)]
+        mock: bool,
+    },
 }
 
 struct MetricScore {
@@ -614,6 +638,54 @@ fn best_value_idx(avg_scores: &[f64], costs: &[f64]) -> usize {
         })
         .map(|(i, _)| i)
         .unwrap_or(0)
+}
+
+/// Returns true if `skill` was invoked in any step of the trace.
+fn skill_invoked(trace: &evalforge_core::trace::Trace, skill: &str) -> bool {
+    trace
+        .steps
+        .iter()
+        .any(|s| s.step_type == "tool_call" && s.tool.as_deref() == Some(skill))
+}
+
+/// Returns true if every tool_call for `skill` has non-empty input args.
+fn skill_args_correct(trace: &evalforge_core::trace::Trace, skill: &str) -> bool {
+    let calls: Vec<_> = trace
+        .steps
+        .iter()
+        .filter(|s| s.step_type == "tool_call" && s.tool.as_deref() == Some(skill))
+        .collect();
+    if calls.is_empty() {
+        return false;
+    }
+    calls.iter().all(|s| {
+        s.input
+            .as_ref()
+            .map(|v| !v.is_null() && v != &serde_json::Value::Object(Default::default()))
+            .unwrap_or(false)
+    })
+}
+
+/// Returns true if the final answer references words found in any tool output for `skill`.
+fn skill_result_utilized(trace: &evalforge_core::trace::Trace, skill: &str) -> bool {
+    let answer_lower = trace.output.answer.to_lowercase();
+    trace
+        .steps
+        .iter()
+        .filter(|s| s.step_type == "tool_call" && s.tool.as_deref() == Some(skill))
+        .filter_map(|s| s.output.as_ref())
+        .any(|output| {
+            let output_str = output.to_string().to_lowercase();
+            output_str
+                .split(|c: char| !c.is_alphanumeric())
+                .filter(|w| w.len() >= 5)
+                .any(|word| answer_lower.contains(word))
+        })
+}
+
+/// Overall skill score = average of the three component rates.
+fn skill_score(invocation: f64, args: f64, utilization: f64) -> f64 {
+    (invocation + args + utilization) / 3.0
 }
 
 fn delta_symbol(delta: f64) -> &'static str {
@@ -2035,6 +2107,127 @@ tr:hover td {{ background: #161b22; }}
             );
             println!("─────────────────────────────");
         }
+
+        Commands::Skills { command } => match command {
+            SkillsCommands::Test {
+                skill,
+                traces,
+                mock: _mock,
+            } => {
+                let dir = std::path::Path::new(&traces);
+                let mut paths: Vec<std::path::PathBuf> = match std::fs::read_dir(dir) {
+                    Ok(entries) => entries
+                        .filter_map(|e| e.ok())
+                        .map(|e| e.path())
+                        .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("json"))
+                        .collect(),
+                    Err(e) => {
+                        eprintln!(
+                            "Error: cannot read traces directory '{}': {}",
+                            traces, e
+                        );
+                        std::process::exit(1);
+                    }
+                };
+                paths.sort();
+
+                // Per-trace results: (filename, invoked, args_ok, utilized)
+                let mut rows: Vec<(String, bool, bool, bool)> = Vec::new();
+
+                for path in &paths {
+                    let filename = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let t = match load_trace(path.to_str().unwrap_or("")) {
+                        Ok(t) => t,
+                        Err(e) => {
+                            eprintln!("Warning: skipping '{}': {}", filename, e);
+                            continue;
+                        }
+                    };
+                    let invoked = skill_invoked(&t, &skill);
+                    let args_ok = if invoked { skill_args_correct(&t, &skill) } else { false };
+                    let utilized = if invoked { skill_result_utilized(&t, &skill) } else { false };
+                    rows.push((filename, invoked, args_ok, utilized));
+                }
+
+                let total = rows.len();
+
+                // Aggregate counters
+                let invoked_count = rows.iter().filter(|(_, inv, _, _)| *inv).count();
+                let args_correct_count = rows.iter().filter(|(_, inv, ok, _)| *inv && *ok).count();
+                let utilized_count = rows.iter().filter(|(_, inv, _, ut)| *inv && *ut).count();
+
+                let invocation_rate = if total == 0 {
+                    0.0
+                } else {
+                    invoked_count as f64 / total as f64
+                };
+                let args_rate = if invoked_count == 0 {
+                    1.0
+                } else {
+                    args_correct_count as f64 / invoked_count as f64
+                };
+                let util_rate = if invoked_count == 0 {
+                    1.0
+                } else {
+                    utilized_count as f64 / invoked_count as f64
+                };
+                let score = skill_score(invocation_rate, args_rate, util_rate);
+                let pass = score >= 0.7;
+
+                println!("EvalForge — Agent Skills Test");
+                println!("─────────────────────────────");
+                println!("Skill:     {}", skill);
+                println!("Traces:    {} evaluated", total);
+                println!("─────────────────────────────");
+                println!(
+                    "Invocation accuracy:    {}/{}   ({:.0}%)",
+                    invoked_count,
+                    total,
+                    invocation_rate * 100.0
+                );
+                println!(
+                    "Argument correctness:   {}/{}   ({:.0}%)",
+                    args_correct_count,
+                    invoked_count,
+                    args_rate * 100.0
+                );
+                println!(
+                    "Result utilization:     {}/{}   ({:.0}%)",
+                    utilized_count,
+                    invoked_count,
+                    util_rate * 100.0
+                );
+                println!("─────────────────────────────");
+                println!(
+                    "Skill score:  {:.2}   {}",
+                    score,
+                    if pass { "PASS" } else { "FAIL" }
+                );
+                println!("─────────────────────────────");
+                println!("Details:");
+                for (filename, invoked, args_ok, utilized) in &rows {
+                    if *invoked {
+                        let args_sym = if *args_ok { "✓" } else { "✗" };
+                        let util_sym = if *utilized { "✓" } else { "✗" };
+                        let row_pass = *args_ok && *utilized;
+                        println!(
+                            "{:<24} invoked ✓   args {}   utilized {}   {}",
+                            filename,
+                            args_sym,
+                            util_sym,
+                            if row_pass { "PASS" } else { "FAIL" }
+                        );
+                    } else {
+                        println!("{:<24} not invoked ✗                      SKIP", filename);
+                    }
+                }
+                println!("─────────────────────────────");
+            }
+        },
     }
 }
 
@@ -2042,7 +2235,8 @@ tr:hover td {{ background: #161b22; }}
 mod tests {
     use super::{
         batch_outcome, best_quality_idx, best_value_idx, calibrate_agreement, delta_symbol,
-        linear_slope, model_cost, report_metric_average, report_pass_rate, Agreement,
+        linear_slope, model_cost, report_metric_average, report_pass_rate, skill_args_correct,
+        skill_invoked, skill_result_utilized, skill_score, Agreement,
     };
 
     #[test]
@@ -2241,5 +2435,106 @@ mod tests {
             2,
             "claude-haiku should be best value"
         );
+    }
+
+    // --- skills tests ---
+
+    fn make_trace(
+        tool: &str,
+        args: Option<serde_json::Value>,
+        output: Option<serde_json::Value>,
+        answer: &str,
+    ) -> evalforge_core::trace::Trace {
+        evalforge_core::trace::Trace {
+            evalforge_version: "0.1".to_string(),
+            trace_id: "test-001".to_string(),
+            timestamp: "2026-01-01T00:00:00Z".to_string(),
+            metadata: evalforge_core::trace::Metadata {
+                framework: "test".to_string(),
+                model: "test".to_string(),
+                agent_name: "test-agent".to_string(),
+                duration_ms: 0,
+                total_tokens: 0,
+            },
+            input: evalforge_core::trace::Input {
+                user: "test question".to_string(),
+                system: "".to_string(),
+            },
+            steps: vec![evalforge_core::trace::Step {
+                step_id: 1,
+                step_type: "tool_call".to_string(),
+                content: None,
+                tool: Some(tool.to_string()),
+                input: args,
+                output,
+                duration_ms: Some(100),
+            }],
+            output: evalforge_core::trace::Output {
+                answer: answer.to_string(),
+                finish_reason: None,
+            },
+            eval_hints: evalforge_core::trace::EvalHints {
+                expected_tools: vec![],
+                expected_answer: None,
+                context_documents: vec![],
+            },
+        }
+    }
+
+    #[test]
+    fn test_skill_invocation_found() {
+        let trace = make_trace(
+            "web_search",
+            Some(serde_json::json!({"query": "test"})),
+            Some(serde_json::json!({"result": "some result"})),
+            "The answer is here.",
+        );
+        assert!(skill_invoked(&trace, "web_search"));
+    }
+
+    #[test]
+    fn test_skill_invocation_missing() {
+        let trace = make_trace(
+            "other_tool",
+            Some(serde_json::json!({"query": "test"})),
+            Some(serde_json::json!({"result": "some result"})),
+            "The answer is here.",
+        );
+        assert!(!skill_invoked(&trace, "web_search"));
+    }
+
+    #[test]
+    fn test_skill_argument_correctness() {
+        let trace = make_trace(
+            "web_search",
+            Some(serde_json::json!({"query": "latest papers on LLM evaluation"})),
+            Some(serde_json::json!({"result": "some result"})),
+            "The answer is here.",
+        );
+        assert!(skill_args_correct(&trace, "web_search"));
+    }
+
+    #[test]
+    fn test_skill_result_utilization() {
+        // Answer contains words from the tool output ("summarization", "benchmark")
+        let trace = make_trace(
+            "web_search",
+            Some(serde_json::json!({"query": "test"})),
+            Some(serde_json::json!({"result": "recent benchmarks on summarization tasks"})),
+            "Based on recent benchmarks, summarization performance has improved.",
+        );
+        assert!(skill_result_utilized(&trace, "web_search"));
+    }
+
+    #[test]
+    fn test_skill_score_calculation() {
+        // (1.0 + 1.0 + 0.5) / 3 = 0.8333...
+        let score = skill_score(1.0, 1.0, 0.5);
+        assert!(
+            (score - (5.0 / 6.0)).abs() < 1e-9,
+            "expected 0.8333, got {}",
+            score
+        );
+        assert!((format!("{:.2}", score)) == "0.83");
     }
 }
