@@ -1,31 +1,42 @@
 {
   "evalforge_version": "0.1",
   "trace_id": "trace-005",
-  "timestamp": "2026-04-11T20:03:10Z",
+  "timestamp": "2026-04-11T20:43:38Z",
   "metadata": {
     "framework": "openai",
     "model": "gpt-4o-mini",
-    "agent_name": "geography-agent",
+    "agent_name": "support-agent",
     "duration_ms": 500,
-    "total_tokens": 100
+    "total_tokens": 200
   },
   "input": {
-    "user": "What is the capital of South Africa?",
-    "system": "You are a precise geography expert."
+    "user": "I never received my refund that was promised 2 weeks ago.",
+    "system": "You are a professional customer support agent."
   },
   "steps": [
     {
       "step_id": 1,
-      "type": "thought",
-      "content": "Answering geography question from knowledge."
+      "type": "tool_call",
+      "tool": "knowledge_base",
+      "input": {
+        "query": "I never received my refund that was promised 2 weeks ago."
+      },
+      "output": {
+        "result": "Refund SLA is 5 business days. If exceeded, escalate to finance team and offer 10% discount on next purchase as compensation."
+      },
+      "duration_ms": 100
     }
   ],
   "output": {
-    "answer": "Cape Town is the capital of South Africa"
+    "answer": "I\u2019m really sorry to hear that you haven\u2019t received your refund yet. I understand how frustrating this situation can be, and I appreciate your patience.\n\nTo help resolve this issue, could you please provide me with your order number or any reference number related to the refund? This will allow me to look into the status of your refund more specifically.\n\nOnce I have that information, I will check the status and get back to you within 24 hours with an update. Thank you for your understanding, and I\u2019m here to help!"
   },
   "eval_hints": {
-    "expected_tools": [],
-    "expected_answer": "Pretoria",
-    "context_documents": []
+    "expected_tools": [
+      "knowledge_base"
+    ],
+    "expected_answer": "Apologize for delay, escalate immediately, provide new timeline with compensation",
+    "context_documents": [
+      "Refund SLA is 5 business days. If exceeded, escalate to finance team and offer 10% discount on next purchase as compensation."
+    ]
   }
 }

@@ -7,33 +7,33 @@
       "method": "llm_judge",
       "metric": "faithfulness",
       "passed": true,
-      "reason": "Mock score — skipping live API call",
-      "score": 0.91,
+      "reason": "The agent's answer is largely faithful to the retrieved context. It accurately conveys that the order is delayed, mentions filing a shipping investigation, and offers both replacement and refund options as specified in the context. However, there are minor additions not explicitly in the context: (1) 'I've flagged your order for immediate investigation' suggests the agent is personally taking action, when the context only describes standard resolution procedures; (2) 'You will receive an update within 24 hours' specifies a timeframe not mentioned in the context; (3) The empathetic framing ('sincerely apologize,' 'I'm really sorry') goes beyond the factual context, though this is a reasonable customer service addition rather than a factual misrepresentation. These are relatively minor deviations that don't contradict the context, so faithfulness remains high.",
+      "score": 0.85,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110011+00:00"
+      "timestamp": "2026-04-11T21:01:43.825544+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "goal_completion",
       "passed": true,
-      "reason": "Mock score — goal appears completed",
-      "score": 0.85,
+      "reason": "The agent successfully addressed the user's concern about their delayed order by acknowledging the problem, taking concrete action (flagging for investigation), and offering solutions (refund or replacement). However, the goal of 'order hasn't arrived' is not fully completed in the sense that the order still hasn't arrived and won't arrive immediately—the agent only promised an investigation update within 24 hours. The user's immediate need (receiving their order) remains unresolved, though the agent has set up a reasonable resolution path. This is stronger than partial completion but not fully complete since the core issue persists.",
+      "score": 0.75,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110011+00:00"
+      "timestamp": "2026-04-11T21:01:43.825544+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
-      "metric": "hallucination",
+      "metric": "g_eval",
       "passed": true,
-      "reason": "Mock score — no hallucinations detected",
-      "score": 0.95,
+      "reason": "The response excellently meets all three rubric criteria: (1) Empathetic - Opens with sincere apology, acknowledges the frustration ('should have arrived by now'), expresses understanding of inconvenience, and uses warm closing language. (2) Specific - References the exact order number (#12345), provides concrete actions (flagged for investigation, offering refund or replacement), and gives customer choice in resolution. (3) Clear next steps with timelines - Outlines three specific action items in numbered format with a clear 24-hour timeline for the first update. The only minor gap is that the response could have been slightly more specific about what happens after the 24-hour investigation window (e.g., 'If we don't locate it within 24 hours, we'll process your refund/replacement immediately'), but this is a very minor omission that doesn't substantially detract from an otherwise excellent response.",
+      "score": 0.9,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110011+00:00"
+      "timestamp": "2026-04-11T21:01:43.825544+00:00"
     }
   ],
   "overall_passed": true,
-  "timestamp": "2026-04-11T20:03:10.110011+00:00",
+  "timestamp": "2026-04-11T21:01:43.825544+00:00",
   "trace_id": "trace-001"
 }

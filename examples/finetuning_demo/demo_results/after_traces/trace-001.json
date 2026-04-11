@@ -1,31 +1,42 @@
 {
   "evalforge_version": "0.1",
   "trace_id": "trace-001",
-  "timestamp": "2026-04-11T20:03:10Z",
+  "timestamp": "2026-04-11T21:01:08Z",
   "metadata": {
     "framework": "openai",
-    "model": "gpt-4o-mini-finetuned",
-    "agent_name": "geography-agent",
+    "model": "ft:gpt-4o-mini-2024-07-18:sortnow::DTZXeO6Q",
+    "agent_name": "support-agent",
     "duration_ms": 500,
-    "total_tokens": 100
+    "total_tokens": 200
   },
   "input": {
-    "user": "What is the capital of Australia?",
-    "system": "You are a precise geography expert."
+    "user": "My order hasn't arrived after 2 weeks. Order #12345.",
+    "system": "You are a professional customer support agent."
   },
   "steps": [
     {
       "step_id": 1,
-      "type": "thought",
-      "content": "Answering geography question from knowledge."
+      "type": "tool_call",
+      "tool": "knowledge_base",
+      "input": {
+        "query": "My order hasn't arrived after 2 weeks. Order #12345."
+      },
+      "output": {
+        "result": "Order #12345 shows delayed in transit. Standard resolution: file shipping investigation and offer replacement or full refund."
+      },
+      "duration_ms": 100
     }
   ],
   "output": {
-    "answer": "The capital of Australia is Canberra, not Sydney"
+    "answer": "I sincerely apologize for the delay with your order #12345. It should have arrived by now.\n\nHere's what I'm doing right now:\n\n1. I've flagged your order for immediate investigation with our shipping team\n2. You will receive an update within 24 hours\n3. If it's not found, I will issue a full refund or send a replacement \u2014 your choice\n\nI'm really sorry for the inconvenience. Is there anything else I can assist you with while we resolve this?"
   },
   "eval_hints": {
-    "expected_tools": [],
-    "expected_answer": "Canberra",
-    "context_documents": []
+    "expected_tools": [
+      "knowledge_base"
+    ],
+    "expected_answer": "Apologize, check order status, offer resolution within 24 hours",
+    "context_documents": [
+      "Order #12345 shows delayed in transit. Standard resolution: file shipping investigation and offer replacement or full refund."
+    ]
   }
 }

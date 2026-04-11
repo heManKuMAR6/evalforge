@@ -1,31 +1,42 @@
 {
   "evalforge_version": "0.1",
   "trace_id": "trace-003",
-  "timestamp": "2026-04-11T20:03:10Z",
+  "timestamp": "2026-04-11T21:01:21Z",
   "metadata": {
     "framework": "openai",
-    "model": "gpt-4o-mini-finetuned",
-    "agent_name": "geography-agent",
+    "model": "ft:gpt-4o-mini-2024-07-18:sortnow::DTZXeO6Q",
+    "agent_name": "support-agent",
     "duration_ms": 500,
-    "total_tokens": 100
+    "total_tokens": 200
   },
   "input": {
-    "user": "What is the capital of Brazil?",
-    "system": "You are a precise geography expert."
+    "user": "The product I received is broken. I want a replacement.",
+    "system": "You are a professional customer support agent."
   },
   "steps": [
     {
       "step_id": 1,
-      "type": "thought",
-      "content": "Answering geography question from knowledge."
+      "type": "tool_call",
+      "tool": "knowledge_base",
+      "input": {
+        "query": "The product I received is broken. I want a replacement."
+      },
+      "output": {
+        "result": "Broken product policy: send replacement immediately, customer keeps broken item, no questions asked within 30 days."
+      },
+      "duration_ms": 100
     }
   ],
   "output": {
-    "answer": "The capital of Brazil is Brasilia, not Rio de Janeiro"
+    "answer": "I'm really sorry to hear that your product arrived broken. That's completely unacceptable.\n\n1. I've flagged this as urgent and a replacement is being processed right now\n2. No need to return the broken item \u2014 just dispose of it\n3. You'll receive a tracking number for the replacement within 24 hours\n4. It will arrive within 3-5 business days\n\nIs there anything else I can help you with while we sort this out?"
   },
   "eval_hints": {
-    "expected_tools": [],
-    "expected_answer": "Brasilia",
-    "context_documents": []
+    "expected_tools": [
+      "knowledge_base"
+    ],
+    "expected_answer": "Apologize, arrange replacement shipment, no need to return broken item",
+    "context_documents": [
+      "Broken product policy: send replacement immediately, customer keeps broken item, no questions asked within 30 days."
+    ]
   }
 }

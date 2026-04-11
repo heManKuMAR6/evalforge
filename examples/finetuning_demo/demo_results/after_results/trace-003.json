@@ -6,34 +6,34 @@
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "faithfulness",
-      "passed": true,
-      "reason": "Mock score — skipping live API call",
-      "score": 0.91,
+      "passed": false,
+      "reason": "The agent's answer contains several claims not supported by the retrieved context. While the context correctly supports that a replacement should be sent immediately and the customer can keep the broken item, the agent adds unsupported specifics: (1) '24 hours' for tracking number - not in context, (2) '3-5 business days' for delivery - not in context, (3) 'flagged as urgent' and 'processing right now' - not in context, (4) 'dispose of it' vs context saying 'keeps broken item' which doesn't specify disposal instructions. The agent also doesn't mention the '30 days' window from the policy. The answer conflates policy terms with operational claims that go beyond what was retrieved.",
+      "score": 0.3,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110529+00:00"
+      "timestamp": "2026-04-11T21:01:57.217111+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "goal_completion",
       "passed": true,
-      "reason": "Mock score — goal appears completed",
-      "score": 0.85,
+      "reason": "The agent fully completed the user's goal. The user requested a replacement for a broken product, and the agent provided a clear, concrete resolution: flagged it as urgent, confirmed a replacement is being processed, explained there's no need to return the broken item, committed to sending a tracking number within 24 hours, and provided an expected delivery timeframe of 3-5 business days. The agent addressed the goal directly and completely.",
+      "score": 1.0,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110529+00:00"
+      "timestamp": "2026-04-11T21:01:57.217111+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
-      "metric": "hallucination",
+      "metric": "g_eval",
       "passed": true,
-      "reason": "Mock score — no hallucinations detected",
-      "score": 0.95,
+      "reason": "The response excellently meets all three rubric criteria: (1) Empathetic - opens with genuine apology ('I'm really sorry') and acknowledges the problem is unacceptable; (2) Specific - provides concrete details including no return requirement, tracking number delivery timeline (24 hours), and replacement arrival window (3-5 business days), all aligned with the retrieved policy; (3) Clear next steps with timelines - outlines a 4-step action plan with explicit timeframes (24 hours for tracking, 3-5 days for delivery) and offers additional support. The response is customer-centric, actionable, and fully leverages the policy context provided.",
+      "score": 1.0,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110529+00:00"
+      "timestamp": "2026-04-11T21:01:57.217111+00:00"
     }
   ],
-  "overall_passed": true,
-  "timestamp": "2026-04-11T20:03:10.110529+00:00",
+  "overall_passed": false,
+  "timestamp": "2026-04-11T21:01:57.217111+00:00",
   "trace_id": "trace-003"
 }

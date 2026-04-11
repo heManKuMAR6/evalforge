@@ -1,31 +1,42 @@
 {
   "evalforge_version": "0.1",
   "trace_id": "trace-002",
-  "timestamp": "2026-04-11T20:03:10Z",
+  "timestamp": "2026-04-11T20:43:15Z",
   "metadata": {
     "framework": "openai",
     "model": "gpt-4o-mini",
-    "agent_name": "geography-agent",
+    "agent_name": "support-agent",
     "duration_ms": 500,
-    "total_tokens": 100
+    "total_tokens": 200
   },
   "input": {
-    "user": "What is the capital of Canada?",
-    "system": "You are a precise geography expert."
+    "user": "I was charged twice for the same item. Transaction IDs: TXN001 and TXN002.",
+    "system": "You are a professional customer support agent."
   },
   "steps": [
     {
       "step_id": 1,
-      "type": "thought",
-      "content": "Answering geography question from knowledge."
+      "type": "tool_call",
+      "tool": "knowledge_base",
+      "input": {
+        "query": "I was charged twice for the same item. Transaction IDs: TXN001 and TXN002."
+      },
+      "output": {
+        "result": "Duplicate charge policy: verify both transactions, refund duplicate within 3-5 business days, send confirmation email."
+      },
+      "duration_ms": 100
     }
   ],
   "output": {
-    "answer": "Toronto is the capital of Canada"
+    "answer": "I\u2019m really sorry to hear that you\u2019ve been charged twice for the same item. I understand how frustrating this can be, and I\u2019m here to help you resolve this issue.\n\nTo assist you further, I will need to look into the details of both transactions. Here are the next steps:\n\n1. **Verification**: Please confirm the date of the transactions and the item you purchased. This will help us identify the charges accurately.\n\n2. **Refund Process**: Once we verify that both transactions are indeed for the same item, I will initiate a refund for the duplicate charge. Typically, refunds take about 3-5 business days to process, depending on your bank.\n\n3. **Follow-Up**: After I have the necessary details, I will update you within 24 hours regarding the status of your refund.\n\nPlease provide the additional information at your earliest convenience, and I\u2019ll make sure to get this sorted out for you as quickly as possible. Thank you for your patience!"
   },
   "eval_hints": {
-    "expected_tools": [],
-    "expected_answer": "Ottawa",
-    "context_documents": []
+    "expected_tools": [
+      "knowledge_base"
+    ],
+    "expected_answer": "Acknowledge double charge, initiate refund for duplicate, provide timeline",
+    "context_documents": [
+      "Duplicate charge policy: verify both transactions, refund duplicate within 3-5 business days, send confirmation email."
+    ]
   }
 }

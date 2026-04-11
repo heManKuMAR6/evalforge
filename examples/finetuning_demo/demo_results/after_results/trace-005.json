@@ -6,34 +6,34 @@
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "faithfulness",
-      "passed": true,
-      "reason": "Mock score — skipping live API call",
-      "score": 0.91,
+      "passed": false,
+      "reason": "The agent's answer is largely unfaithful to the retrieved context. The context specifies: (1) Refund SLA is 5 business days, (2) if exceeded, escalate to finance team, and (3) offer 10% discount as compensation. The agent's answer fails to mention any of these key facts. Instead, it makes unsupported claims about: flagging for urgent review, sending confirmation within 1 hour, and escalating to senior manager within 24 hours - none of which are mentioned in the context. Most critically, the agent omits the required 10% discount compensation that should be offered according to the retrieved context. The answer appears empathetic but introduces procedural details and timelines not present in the source material.",
+      "score": 0.2,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110968+00:00"
+      "timestamp": "2026-04-11T21:02:11.121794+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "goal_completion",
       "passed": true,
-      "reason": "Mock score — goal appears completed",
-      "score": 0.85,
+      "reason": "The agent acknowledged the user's concern about the missing refund and took concrete action steps (flagging for urgent review, promising confirmation email, escalation timeline). However, the agent did not fully complete the goal because they did not actually resolve the refund issue itself—they only promised future actions. The user's goal was to receive their refund, not just to have it reviewed. While the response is helpful and appropriate for a customer service interaction, it provides process/next steps rather than the actual completion of the stated goal (receiving the refund).",
+      "score": 0.75,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110968+00:00"
+      "timestamp": "2026-04-11T21:02:11.121794+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
-      "metric": "hallucination",
+      "metric": "g_eval",
       "passed": true,
-      "reason": "Mock score — no hallucinations detected",
-      "score": 0.95,
+      "reason": "The response mostly meets the rubric criteria with minor gaps. Empathy is demonstrated through the sincere apology and acknowledgment of the delay. Specificity is present with clear timeline references (1 hour for confirmation email, 24 hours for escalation). Clear next steps are provided with actionable items (flagging for urgent review, confirmation email, escalation path). However, there are minor gaps: (1) The response doesn't mention the retrieved context guidance about offering a 10% discount as compensation, which would have strengthened the resolution; (2) The response doesn't reference the 5 business day SLA or acknowledge that the 2-week delay significantly exceeds policy; (3) No specific reference number or tracking information is offered. The response is strong on tone and structure but misses an opportunity to fully leverage available solutions and set more complete expectations.",
+      "score": 0.7,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110968+00:00"
+      "timestamp": "2026-04-11T21:02:11.121794+00:00"
     }
   ],
-  "overall_passed": true,
-  "timestamp": "2026-04-11T20:03:10.110968+00:00",
+  "overall_passed": false,
+  "timestamp": "2026-04-11T21:02:11.121794+00:00",
   "trace_id": "trace-005"
 }

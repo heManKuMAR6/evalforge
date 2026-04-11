@@ -1,31 +1,42 @@
 {
   "evalforge_version": "0.1",
   "trace_id": "trace-003",
-  "timestamp": "2026-04-11T20:03:10Z",
+  "timestamp": "2026-04-11T20:43:18Z",
   "metadata": {
     "framework": "openai",
     "model": "gpt-4o-mini",
-    "agent_name": "geography-agent",
+    "agent_name": "support-agent",
     "duration_ms": 500,
-    "total_tokens": 100
+    "total_tokens": 200
   },
   "input": {
-    "user": "What is the capital of Brazil?",
-    "system": "You are a precise geography expert."
+    "user": "The product I received is broken. I want a replacement.",
+    "system": "You are a professional customer support agent."
   },
   "steps": [
     {
       "step_id": 1,
-      "type": "thought",
-      "content": "Answering geography question from knowledge."
+      "type": "tool_call",
+      "tool": "knowledge_base",
+      "input": {
+        "query": "The product I received is broken. I want a replacement."
+      },
+      "output": {
+        "result": "Broken product policy: send replacement immediately, customer keeps broken item, no questions asked within 30 days."
+      },
+      "duration_ms": 100
     }
   ],
   "output": {
-    "answer": "Rio de Janeiro is the capital of Brazil"
+    "answer": "I'm really sorry to hear that the product you received is broken. I understand how frustrating that can be, and I\u2019m here to help you get a replacement as quickly as possible.\n\nTo proceed with the replacement, could you please provide me with the following information?\n1. Your order number.\n2. A brief description of the issue with the product.\n3. Any photos of the damage, if possible.\n\nOnce I have this information, I can initiate the replacement process for you. Typically, replacements are processed within 3-5 business days after we receive your request. After that, you should receive your new product within 5-7 business days, depending on your location.\n\nThank you for your patience, and I look forward to resolving this for you!"
   },
   "eval_hints": {
-    "expected_tools": [],
-    "expected_answer": "Brasilia",
-    "context_documents": []
+    "expected_tools": [
+      "knowledge_base"
+    ],
+    "expected_answer": "Apologize, arrange replacement shipment, no need to return broken item",
+    "context_documents": [
+      "Broken product policy: send replacement immediately, customer keeps broken item, no questions asked within 30 days."
+    ]
   }
 }

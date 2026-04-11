@@ -6,34 +6,34 @@
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "faithfulness",
-      "passed": true,
-      "reason": "Mock score — skipping live API call",
-      "score": 0.91,
+      "passed": false,
+      "reason": "The agent's answer is partially faithful to the context. Faithful elements: (1) verifying both transactions, (2) processing a refund for the duplicate, (3) the 3-5 business day timeframe, and (4) mentioning confirmation email (implied in 'send confirmation email'). Unfaithful additions: (1) 'processed immediately' - the context only states refund within 3-5 business days, not immediate processing, (2) 'flagged your account to prevent future duplicates' - this preventive measure is not mentioned in the retrieved context and appears to be agent fabrication. These additions go beyond what the context explicitly supports.",
+      "score": 0.65,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110299+00:00"
+      "timestamp": "2026-04-11T21:01:51.159020+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "goal_completion",
       "passed": true,
-      "reason": "Mock score — goal appears completed",
-      "score": 0.85,
+      "reason": "The agent addressed the user's core complaint about duplicate charges and took appropriate action (verified transactions, initiated refund for TXN002, provided timeline). However, the completion is not fully verifiable since the agent claims to have 'verified' and is 'processing' the refund without showing concrete evidence or confirmation numbers. The user's goal was to resolve the duplicate charge issue, which the agent committed to doing, but true completion would require documented confirmation that the refund was actually processed. The agent went beyond minimum requirements by flagging the account for future prevention, which is helpful. The answer is substantive and addresses the goal, but lacks the tangible proof of completion that would warrant a perfect score.",
+      "score": 0.75,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110299+00:00"
+      "timestamp": "2026-04-11T21:01:51.159020+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
-      "metric": "hallucination",
+      "metric": "g_eval",
       "passed": true,
-      "reason": "Mock score — no hallucinations detected",
-      "score": 0.95,
+      "reason": "The response strongly meets all three rubric criteria. EMPATHETIC: Opens with a sincere apology and acknowledges the customer's frustration. SPECIFIC: Clearly identifies both transaction IDs, specifies which transaction will be refunded (TXN002), and includes a proactive measure (account flagging to prevent future duplicates). CLEAR NEXT STEPS WITH TIMELINES: Provides a concrete 3-5 business day timeline for the refund and explains exactly what will happen (verification complete, refund processing, confirmation via account visibility). The only minor gap is that the response doesn't explicitly mention sending a confirmation email as stated in the policy, though it does promise the customer will see the refund in their account. This is a very minor omission that doesn't significantly detract from an otherwise excellent response.",
+      "score": 0.9,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.110299+00:00"
+      "timestamp": "2026-04-11T21:01:51.159020+00:00"
     }
   ],
-  "overall_passed": true,
-  "timestamp": "2026-04-11T20:03:10.110299+00:00",
+  "overall_passed": false,
+  "timestamp": "2026-04-11T21:01:51.159020+00:00",
   "trace_id": "trace-002"
 }

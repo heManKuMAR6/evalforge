@@ -7,33 +7,33 @@
       "method": "llm_judge",
       "metric": "faithfulness",
       "passed": true,
-      "reason": "Mock score — skipping live API call",
-      "score": 0.91,
+      "reason": "The agent's answer is largely faithful to the retrieved context. It accurately incorporates the key policy details: verifying both transactions, refunding the duplicate within 3-5 business days, and sending confirmation (implied through status updates). However, the agent adds some information not explicitly in the context: (1) asking for transaction dates and item confirmation details, (2) mentioning a 24-hour status update commitment, and (3) referencing 'depending on your bank' as a caveat for refund timing. These additions are reasonable customer service practices that don't contradict the context, but they do extend beyond what was explicitly stated in the retrieved policy information. The core policy elements are faithfully represented.",
+      "score": 0.85,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.101893+00:00"
+      "timestamp": "2026-04-11T20:43:54.173168+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "goal_completion",
-      "passed": true,
-      "reason": "Mock score — goal appears completed",
-      "score": 0.85,
+      "passed": false,
+      "reason": "The agent partially completed the user's goal. The agent acknowledged the duplicate charge issue and outlined a helpful plan to resolve it (verification, refund process, and follow-up). However, the agent did not actually complete the resolution—instead, it requested additional information before proceeding. The user provided specific transaction IDs (TXN001 and TXN002), indicating they were ready for action, but the agent did not investigate these transactions or initiate the refund. A full completion would have involved looking up the transactions, confirming the duplicate charge, and initiating the refund process rather than asking for more information.",
+      "score": 0.5,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.101893+00:00"
+      "timestamp": "2026-04-11T20:43:54.173168+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
-      "metric": "hallucination",
+      "metric": "g_eval",
       "passed": true,
-      "reason": "Mock score — no hallucinations detected",
-      "score": 0.95,
+      "reason": "The response demonstrates strong empathy through acknowledgment of frustration and reassurance ('I'm really sorry,' 'I understand how frustrating this can be'). It provides specific next steps organized in a clear numbered format (Verification, Refund Process, Follow-Up) and includes concrete timelines (3-5 business days for refund, 24-hour status update). However, there is a minor gap: the agent asks the user to provide additional information (transaction dates and item details) but already has the Transaction IDs (TXN001 and TXN002) from the user's initial message. The response could have been more efficient by acknowledging these IDs and indicating the information is already in hand, or being more explicit about which specific details still need confirmation. This represents a minor inefficiency in the process rather than a fundamental failure to meet the rubric criteria.",
+      "score": 0.7,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.101893+00:00"
+      "timestamp": "2026-04-11T20:43:54.173168+00:00"
     }
   ],
-  "overall_passed": true,
-  "timestamp": "2026-04-11T20:03:10.101893+00:00",
+  "overall_passed": false,
+  "timestamp": "2026-04-11T20:43:54.173168+00:00",
   "trace_id": "trace-002"
 }

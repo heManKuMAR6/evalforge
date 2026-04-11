@@ -6,34 +6,34 @@
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "faithfulness",
-      "passed": true,
-      "reason": "Mock score — skipping live API call",
-      "score": 0.91,
+      "passed": false,
+      "reason": "The agent's answer is largely unfaithful to the retrieved context. The context explicitly states that the order is 'delayed in transit' and provides a clear resolution path: 'file shipping investigation and offer replacement or full refund.' However, the agent's answer: (1) does not mention that the order is delayed in transit, (2) does not offer the specific solutions provided in the context (replacement or full refund), (3) instead vaguely promises to 'reach out to shipping department' and get back in 24-48 hours, which is not supported by the context, and (4) adds unsupported information like 'orders should arrive within a week.' The agent should have directly communicated the delay status and offered the concrete resolution options (replacement or refund) that were available in the retrieved context.",
+      "score": 0.3,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.101222+00:00"
+      "timestamp": "2026-04-11T20:43:46.272512+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "goal_completion",
-      "passed": true,
-      "reason": "Mock score — goal appears completed",
-      "score": 0.85,
+      "passed": false,
+      "reason": "The agent partially completed the goal. While it acknowledged the user's concern, expressed empathy, and promised to investigate the order status, it did not provide immediate information about the order. The agent only committed to following up in 24-48 hours rather than providing an actual status update or resolution. The user's goal was to find out why their order hasn't arrived and likely get it resolved, but the agent deferred this to a future interaction instead of checking the system immediately or offering concrete solutions (like reshipping, refund, etc.).",
+      "score": 0.5,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.101222+00:00"
+      "timestamp": "2026-04-11T20:43:46.272512+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
-      "metric": "hallucination",
+      "metric": "g_eval",
       "passed": true,
-      "reason": "Mock score — no hallucinations detected",
-      "score": 0.95,
+      "reason": "The response demonstrates strong empathy by acknowledging the customer's frustration and validating their concern. However, it falls short on specificity and clear next steps. Strengths: (1) Empathetic tone throughout, (2) References the specific order number, (3) Provides a clear timeline (24-48 hours). Weaknesses: (1) Lacks specific information about the actual status - the retrieved context indicates the order is 'delayed in transit' but the agent doesn't communicate this finding to the customer, (2) Does not present concrete resolution options available to the customer (replacement or full refund as noted in the context), (3) Vague about next steps - says 'I will reach out' but doesn't specify concrete actions like filing a shipping investigation or what options will be offered. The response reads more like a placeholder than actionable guidance. A stronger response would have acknowledged the delayed status, explained the available remedies upfront, and set clearer expectations about which option the customer prefers to pursue.",
+      "score": 0.7,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.101222+00:00"
+      "timestamp": "2026-04-11T20:43:46.272512+00:00"
     }
   ],
-  "overall_passed": true,
-  "timestamp": "2026-04-11T20:03:10.101222+00:00",
+  "overall_passed": false,
+  "timestamp": "2026-04-11T20:43:46.272512+00:00",
   "trace_id": "trace-001"
 }

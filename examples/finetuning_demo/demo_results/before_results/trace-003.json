@@ -6,34 +6,34 @@
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "faithfulness",
-      "passed": true,
-      "reason": "Mock score — skipping live API call",
-      "score": 0.91,
+      "passed": false,
+      "reason": "The agent's answer is largely unfaithful to the retrieved context. The context clearly states the broken product policy is to 'send replacement immediately, customer keeps broken item, no questions asked within 30 days.' However, the agent: (1) asks for order number, description, and photos before processing - contradicting 'no questions asked'; (2) mentions 3-5 business days processing time and 5-7 business days delivery - specific timelines not in the context; (3) does not mention the customer can keep the broken item - a key policy detail. The agent adds substantial procedural requirements and timelines that are not supported by the retrieved context, making the answer significantly divergent from the actual policy.",
+      "score": 0.2,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.102164+00:00"
+      "timestamp": "2026-04-11T20:44:01.385622+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
       "metric": "goal_completion",
-      "passed": true,
-      "reason": "Mock score — goal appears completed",
-      "score": 0.85,
+      "passed": false,
+      "reason": "The agent partially completed the user's goal. While the agent demonstrated understanding of the issue, expressed empathy, and outlined the replacement process with helpful timelines, the agent did not actually initiate or complete the replacement. Instead, the agent only requested information needed to start the process. The user asked for a replacement, which implies they want the action taken, but the agent only set up the conditions for it to happen. The agent moved the process forward but left the actual completion dependent on the user providing additional information first.",
+      "score": 0.5,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.102164+00:00"
+      "timestamp": "2026-04-11T20:44:01.385622+00:00"
     },
     {
       "judge_model": "claude-haiku-4-5-20251001",
       "method": "llm_judge",
-      "metric": "hallucination",
-      "passed": true,
-      "reason": "Mock score — no hallucinations detected",
-      "score": 0.95,
+      "metric": "g_eval",
+      "passed": false,
+      "reason": "The response demonstrates empathy well with phrases like 'I'm really sorry' and 'I understand how frustrating that can be,' addressing the emotional aspect of the rubric. However, it has significant gaps in specificity and adherence to policy. According to the retrieved context, the broken product policy explicitly states replacements should be sent 'immediately' with 'no questions asked' within 30 days. The agent's response contradicts this by requesting multiple pieces of information (order number, description, photos) and stating a 3-5 day processing timeline, when the policy mandates immediate replacement. The agent does provide clear next steps and timelines (3-5 business days for processing, 5-7 business days for delivery), which partially satisfies that criterion. Overall, while empathetic and somewhat clear on timelines, the response fails to align with the specific policy that should govern this interaction, making it inadequately specific to the actual situation and policy constraints.",
+      "score": 0.5,
       "threshold": 0.7,
-      "timestamp": "2026-04-11T20:03:10.102164+00:00"
+      "timestamp": "2026-04-11T20:44:01.385622+00:00"
     }
   ],
-  "overall_passed": true,
-  "timestamp": "2026-04-11T20:03:10.102164+00:00",
+  "overall_passed": false,
+  "timestamp": "2026-04-11T20:44:01.385622+00:00",
   "trace_id": "trace-003"
 }

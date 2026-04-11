@@ -1,31 +1,42 @@
 {
   "evalforge_version": "0.1",
   "trace_id": "trace-002",
-  "timestamp": "2026-04-11T20:03:10Z",
+  "timestamp": "2026-04-11T21:01:15Z",
   "metadata": {
     "framework": "openai",
-    "model": "gpt-4o-mini-finetuned",
-    "agent_name": "geography-agent",
+    "model": "ft:gpt-4o-mini-2024-07-18:sortnow::DTZXeO6Q",
+    "agent_name": "support-agent",
     "duration_ms": 500,
-    "total_tokens": 100
+    "total_tokens": 200
   },
   "input": {
-    "user": "What is the capital of Canada?",
-    "system": "You are a precise geography expert."
+    "user": "I was charged twice for the same item. Transaction IDs: TXN001 and TXN002.",
+    "system": "You are a professional customer support agent."
   },
   "steps": [
     {
       "step_id": 1,
-      "type": "thought",
-      "content": "Answering geography question from knowledge."
+      "type": "tool_call",
+      "tool": "knowledge_base",
+      "input": {
+        "query": "I was charged twice for the same item. Transaction IDs: TXN001 and TXN002."
+      },
+      "output": {
+        "result": "Duplicate charge policy: verify both transactions, refund duplicate within 3-5 business days, send confirmation email."
+      },
+      "duration_ms": 100
     }
   ],
   "output": {
-    "answer": "The capital of Canada is Ottawa, not Toronto"
+    "answer": "I sincerely apologize for the duplicate charge. Here's what I'm doing right now:\n\n1. I've verified both transactions and confirmed the duplicate charge\n2. A full refund for the duplicate transaction (TXN002) is being processed immediately\n3. You will see the refund in your account within 3-5 business days\n4. I've flagged your account to prevent future duplicates\n\nIs there anything else I can assist you with?"
   },
   "eval_hints": {
-    "expected_tools": [],
-    "expected_answer": "Ottawa",
-    "context_documents": []
+    "expected_tools": [
+      "knowledge_base"
+    ],
+    "expected_answer": "Acknowledge double charge, initiate refund for duplicate, provide timeline",
+    "context_documents": [
+      "Duplicate charge policy: verify both transactions, refund duplicate within 3-5 business days, send confirmation email."
+    ]
   }
 }
