@@ -21,7 +21,6 @@ import subprocess
 from pathlib import Path
 from openai import OpenAI
 
-client = OpenAI()
 EVALFORGE_BIN = os.environ.get("EVALFORGE_BIN", "evalforge")
 
 # Test questions
@@ -114,7 +113,7 @@ TRAINING_DATA = [
 ]
 
 
-def run_model(model: str, question: str) -> str:
+def run_model(client, model: str, question: str) -> str:
     """Run a model and return its answer."""
     response = client.chat.completions.create(
         model=model,
@@ -178,7 +177,7 @@ def score_traces_with_evalforge(traces_dir: str, output_dir: str):
         print("Error:", result.stderr)
 
 
-def upload_training_data() -> str:
+def upload_training_data(client) -> str:
     """Upload training data to OpenAI."""
     print("\n📤 Uploading training data to OpenAI...")
     with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
@@ -193,7 +192,7 @@ def upload_training_data() -> str:
     return response.id
 
 
-def start_fine_tuning(file_id: str) -> str:
+def start_fine_tuning(client, file_id: str) -> str:
     """Start fine-tuning job."""
     print("\n🔧 Starting fine-tuning job...")
     job = client.fine_tuning.jobs.create(
@@ -206,7 +205,7 @@ def start_fine_tuning(file_id: str) -> str:
     return job.id
 
 
-def wait_for_fine_tuning(job_id: str) -> str:
+def wait_for_fine_tuning(client, job_id: str) -> str:
     """Wait for fine-tuning to complete and return model name."""
     while True:
         job = client.fine_tuning.jobs.retrieve(job_id)
@@ -221,7 +220,55 @@ def wait_for_fine_tuning(job_id: str) -> str:
         time.sleep(30)
 
 
-def main():
+def run_mock_demo():
+    print("Running MOCK demo — no API calls needed")
+
+    demo_dir = Path("demo_results")
+    before_traces = demo_dir / "before_traces"
+    after_traces = demo_dir / "after_traces"
+    before_results = demo_dir / "before_results"
+    after_results = demo_dir / "after_results"
+    for d in [before_traces, after_traces, before_results, after_results]:
+        d.mkdir(parents=True, exist_ok=True)
+
+    base_answers = [
+        "Sydney is the largest city and often considered the capital",
+        "Toronto is the capital of Canada",
+        "Rio de Janeiro is the capital of Brazil",
+        "Osaka is a major city in Japan",
+        "Cape Town is the capital of South Africa",
+    ]
+    finetuned_answers = [
+        "The capital of Australia is Canberra, not Sydney",
+        "The capital of Canada is Ottawa, not Toronto",
+        "The capital of Brazil is Brasilia, not Rio de Janeiro",
+        "The capital of Japan is Tokyo",
+        "The administrative capital of South Africa is Pretoria",
+    ]
+
+    for i, (q, ans) in enumerate(zip(TEST_QUESTIONS, base_answers)):
+        trace = create_trace(q['question'], ans, q['expected'], "gpt-4o-mini", f"trace-{i+1:03d}")
+        (before_traces / f"trace-{i+1:03d}.json").write_text(json.dumps(trace, indent=2))
+
+    for i, (q, ans) in enumerate(zip(TEST_QUESTIONS, finetuned_answers)):
+        trace = create_trace(q['question'], ans, q['expected'], "gpt-4o-mini-finetuned", f"trace-{i+1:03d}")
+        (after_traces / f"trace-{i+1:03d}.json").write_text(json.dumps(trace, indent=2))
+
+    print("\n--- BASE MODEL SCORES ---")
+    score_traces_with_evalforge(str(before_traces), str(before_results))
+    print("\n--- FINE-TUNED MODEL SCORES ---")
+    score_traces_with_evalforge(str(after_traces), str(after_results))
+    print("\n--- COMPARISON ---")
+    subprocess.run([EVALFORGE_BIN, "compare", "--before", str(before_results), "--after", str(after_results)])
+    print("\n--- GENERATING REPORT ---")
+    report_path = demo_dir / "report.html"
+    subprocess.run([EVALFORGE_BIN, "report", "--results", str(after_results), "--output", str(report_path), "--title", "Fine-tuning Demo Report"])
+    print(f"Report: open {report_path}")
+
+
+def run_real_demo():
+    client = OpenAI()
+
     print("=" * 60)
     print("🔥 EvalForge Fine-tuning Demo")
     print("=" * 60)
@@ -242,7 +289,7 @@ def main():
 
     for i, q in enumerate(TEST_QUESTIONS):
         print(f"  Question {i+1}: {q['question']}")
-        answer = run_model(base_model, q['question'])
+        answer = run_model(client, base_model, q['question'])
         print(f"  Answer: {answer[:80]}...")
         trace = create_trace(
             q['question'], answer, q['expected'],
@@ -257,9 +304,9 @@ def main():
     # STEP 2 — Fine-tune
     print("\n🎯 STEP 2: Fine-tuning gpt-4o-mini")
     print("-" * 40)
-    file_id = upload_training_data()
-    job_id = start_fine_tuning(file_id)
-    fine_tuned_model = wait_for_fine_tuning(job_id)
+    file_id = upload_training_data(client)
+    job_id = start_fine_tuning(client, file_id)
+    fine_tuned_model = wait_for_fine_tuning(client, job_id)
 
     # STEP 3 — Evaluate fine-tuned model
     print("\n📊 STEP 3: Evaluating fine-tuned model")
@@ -267,7 +314,7 @@ def main():
 
     for i, q in enumerate(TEST_QUESTIONS):
         print(f"  Question {i+1}: {q['question']}")
-        answer = run_model(fine_tuned_model, q['question'])
+        answer = run_model(client, fine_tuned_model, q['question'])
         print(f"  Answer: {answer[:80]}...")
         trace = create_trace(
             q['question'], answer, q['expected'],
@@ -304,6 +351,13 @@ def main():
     print("\n" + "=" * 60)
     print("✅ Demo complete!")
     print("=" * 60)
+
+
+def main():
+    if os.environ.get("MOCK_DEMO") == "1":
+        run_mock_demo()
+    else:
+        run_real_demo()
 
 
 if __name__ == "__main__":

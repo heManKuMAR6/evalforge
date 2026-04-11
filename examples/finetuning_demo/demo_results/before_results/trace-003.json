@@ -1,0 +1,39 @@
+{
+  "evalforge_version": "0.8.0",
+  "framework": "openai",
+  "metrics": [
+    {
+      "judge_model": "claude-haiku-4-5-20251001",
+      "method": "llm_judge",
+      "metric": "faithfulness",
+      "passed": true,
+      "reason": "Mock score — skipping live API call",
+      "score": 0.91,
+      "threshold": 0.7,
+      "timestamp": "2026-04-11T20:03:10.102164+00:00"
+    },
+    {
+      "judge_model": "claude-haiku-4-5-20251001",
+      "method": "llm_judge",
+      "metric": "goal_completion",
+      "passed": true,
+      "reason": "Mock score — goal appears completed",
+      "score": 0.85,
+      "threshold": 0.7,
+      "timestamp": "2026-04-11T20:03:10.102164+00:00"
+    },
+    {
+      "judge_model": "claude-haiku-4-5-20251001",
+      "method": "llm_judge",
+      "metric": "hallucination",
+      "passed": true,
+      "reason": "Mock score — no hallucinations detected",
+      "score": 0.95,
+      "threshold": 0.7,
+      "timestamp": "2026-04-11T20:03:10.102164+00:00"
+    }
+  ],
+  "overall_passed": true,
+  "timestamp": "2026-04-11T20:03:10.102164+00:00",
+  "trace_id": "trace-003"
+}

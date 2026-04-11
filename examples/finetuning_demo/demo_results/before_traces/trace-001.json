@@ -1,0 +1,31 @@
+{
+  "evalforge_version": "0.1",
+  "trace_id": "trace-001",
+  "timestamp": "2026-04-11T20:03:10Z",
+  "metadata": {
+    "framework": "openai",
+    "model": "gpt-4o-mini",
+    "agent_name": "geography-agent",
+    "duration_ms": 500,
+    "total_tokens": 100
+  },
+  "input": {
+    "user": "What is the capital of Australia?",
+    "system": "You are a precise geography expert."
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "type": "thought",
+      "content": "Answering geography question from knowledge."
+    }
+  ],
+  "output": {
+    "answer": "Sydney is the largest city and often considered the capital"
+  },
+  "eval_hints": {
+    "expected_tools": [],
+    "expected_answer": "Canberra",
+    "context_documents": []
+  }
+}

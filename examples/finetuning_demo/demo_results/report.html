@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fine-tuning Demo Report</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 32px; }
+h1 { color: #7c3aed; font-size: 2rem; margin-bottom: 8px; }
+.subtitle { color: #8b949e; margin-bottom: 32px; font-size: 0.9rem; }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; text-align: center; }
+.card-value { font-size: 2rem; font-weight: 700; color: #c9d1d9; }
+.card-label { color: #8b949e; font-size: 0.85rem; margin-top: 4px; }
+.card.pass .card-value { color: #3fb950; }
+.card.fail .card-value { color: #f85149; }
+.card.rate .card-value { color: #7c3aed; }
+section { margin-bottom: 32px; }
+h2 { color: #c9d1d9; font-size: 1.1rem; margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #161b22; color: #8b949e; font-size: 0.8rem; text-transform: uppercase; padding: 10px 14px; text-align: left; }
+td { padding: 10px 14px; border-bottom: 1px solid #21262d; }
+tr:hover td { background: #161b22; }
+.pass-badge { color: #3fb950; font-weight: 600; }
+.fail-badge { color: #f85149; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Fine-tuning Demo Report</h1>
+<p class="subtitle">Generated: 2026-04-11T20:03:10.127070+00:00</p>
+<div class="cards">
+  <div class="card"><div class="card-value">5</div><div class="card-label">Total Traces</div></div>
+  <div class="card pass"><div class="card-value">5</div><div class="card-label">Passed</div></div>
+  <div class="card fail"><div class="card-value">0</div><div class="card-label">Failed</div></div>
+  <div class="card rate"><div class="card-value">100.0%</div><div class="card-label">Pass Rate</div></div>
+</div>
+<section>
+  <h2>Metrics Summary</h2>
+  <table>
+    <thead><tr><th>Metric</th><th>Avg Score</th></tr></thead>
+    <tbody>
+      <tr><td>faithfulness</td><td>0.910</td></tr>
+      <tr><td>goal_completion</td><td>0.850</td></tr>
+      <tr><td>hallucination</td><td>0.950</td></tr>
+    </tbody>
+  </table>
+</section>
+<section>
+  <h2>Per-Trace Results</h2>
+  <table>
+    <thead><tr><th>Trace ID</th><th>faithfulness</th><th>goal_completion</th><th>hallucination</th><th>Overall</th></tr></thead>
+    <tbody>
+      <tr><td>trace-001</td><td>0.91 <span class="pass-badge">PASS</span></td><td>0.85 <span class="pass-badge">PASS</span></td><td>0.95 <span class="pass-badge">PASS</span></td><td><span class="pass-badge">PASS</span></td></tr>
+      <tr><td>trace-002</td><td>0.91 <span class="pass-badge">PASS</span></td><td>0.85 <span class="pass-badge">PASS</span></td><td>0.95 <span class="pass-badge">PASS</span></td><td><span class="pass-badge">PASS</span></td></tr>
+      <tr><td>trace-003</td><td>0.91 <span class="pass-badge">PASS</span></td><td>0.85 <span class="pass-badge">PASS</span></td><td>0.95 <span class="pass-badge">PASS</span></td><td><span class="pass-badge">PASS</span></td></tr>
+      <tr><td>trace-004</td><td>0.91 <span class="pass-badge">PASS</span></td><td>0.85 <span class="pass-badge">PASS</span></td><td>0.95 <span class="pass-badge">PASS</span></td><td><span class="pass-badge">PASS</span></td></tr>
+      <tr><td>trace-005</td><td>0.91 <span class="pass-badge">PASS</span></td><td>0.85 <span class="pass-badge">PASS</span></td><td>0.95 <span class="pass-badge">PASS</span></td><td><span class="pass-badge">PASS</span></td></tr>
+    </tbody>
+  </table>
+</section>
+</body>
+</html>
