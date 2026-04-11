@@ -23,7 +23,7 @@ use evalforge_core::metrics::code_security::{extract_code_security_input, score_
 use evalforge_core::trace::load_trace;
 
 #[derive(Parser)]
-#[command(name = "evalforge", version = "0.9.0")]
+#[command(name = "evalforge", version = "1.0.0")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -718,7 +718,7 @@ fn main() {
                 }
             };
 
-            println!("EvalForge v0.9.0");
+            println!("EvalForge v1.0.0");
             println!("─────────────────────────────");
             println!("Trace ID:   {}", t.trace_id);
             println!("Framework:  {}", t.metadata.framework);

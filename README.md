@@ -131,6 +131,28 @@ evalforge run --trace my_trace.json --metrics faithfulness --threshold 0.8
 
 # Mock mode (no API key needed — for testing)
 evalforge run --trace my_trace.json --metrics faithfulness --mock
+
+# Batch — score all traces in a directory
+evalforge batch --traces traces/ --metrics faithfulness,goal_completion --output results/
+
+# Compare before/after fine-tuning
+evalforge compare --before results/before/ --after results/after/
+
+# Trend analysis — detect regression across CI runs
+evalforge trend --history results/ --metrics faithfulness --window 10 --exit-on-regression
+
+# Generate self-contained HTML report
+evalforge report --results results/ --output report.html --title "My Agent Report"
+
+# Compare multiple models on the same traces
+evalforge models \
+  --traces traces/ \
+  --metrics faithfulness,goal_completion \
+  --models gpt-4o-mini,gpt-4o,claude-haiku,claude-sonnet \
+  --mock
+
+# Test whether an agent reliably uses a specific tool
+evalforge skills test --skill web_search --traces traces/ --mock
 ```
 
 ## Trace Format
@@ -189,6 +211,9 @@ EvalForge uses a simple universal trace format that any framework can map to:
 | `g_eval` | Custom LLM-as-judge with user-defined rubric | ✅ v0.3 |
 | `context_precision` | How much retrieved context was relevant? | ✅ v0.6 |
 | `answer_relevance` | Does the answer directly address the question asked? | ✅ v0.7 |
+| `code_correctness` | Does the generated code correctly solve the task? | ✅ v1.0 |
+| `code_quality` | Is the generated code clean, readable, and idiomatic? | ✅ v1.0 |
+| `code_security` | Does the generated code avoid common security vulnerabilities? | ✅ v1.0 |
 
 ## How EvalForge compares
 
@@ -341,8 +366,8 @@ python examples/openai-agents/basic_eval.py
 - [x] v0.6 — context_precision + JS SDK
 - [x] v0.7 — answer_relevance metric + audit log fields in --output JSON
 - [x] v0.8 — calibrate command + Vercel AI SDK adapter
-- [ ] v0.9 — web dashboard, team collaboration
-- [ ] v1.0 — stable API, full docs site
+- [x] v0.9 — batch command + compare command + trend analysis + HTML report
+- [x] v1.0 — models command + skills command + coding metrics (code_correctness, code_quality, code_security) + stable API
 
 ## Contributing
 
