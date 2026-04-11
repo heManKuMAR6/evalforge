@@ -152,6 +152,25 @@ enum Commands {
         #[arg(long, default_value = "EvalForge Report")]
         title: String,
     },
+
+    /// Compare multiple models on the same set of traces
+    Models {
+        /// Path to directory containing trace JSON files
+        #[arg(long)]
+        traces: String,
+
+        /// Comma-separated list of metrics to evaluate
+        #[arg(long)]
+        metrics: String,
+
+        /// Comma-separated list of model names to compare
+        #[arg(long)]
+        models: String,
+
+        /// Use mock scores without calling the API
+        #[arg(long, default_value_t = false)]
+        mock: bool,
+    },
 }
 
 struct MetricScore {
@@ -530,6 +549,71 @@ fn report_metric_average(scores: &[f64]) -> f64 {
         return 0.0;
     }
     scores.iter().sum::<f64>() / scores.len() as f64
+}
+
+/// Returns estimated cost per run for a named model.
+fn model_cost(model: &str) -> f64 {
+    match model {
+        "gpt-4o" => 0.023,
+        "gpt-4o-mini" => 0.001,
+        "claude-sonnet-4-6" | "claude-sonnet" => 0.019,
+        "claude-haiku-4-5-20251001" | "claude-haiku" => 0.0008,
+        _ => 0.005,
+    }
+}
+
+/// Returns the mock base score for a given metric name.
+fn mock_base_score(metric: &str) -> f64 {
+    match metric {
+        "faithfulness" => 0.91,
+        "tool_accuracy" => 1.0,
+        "goal_completion" => 0.85,
+        "hallucination" => 0.95,
+        "g_eval" => 0.88,
+        "context_precision" => 0.80,
+        "answer_relevance" => 0.95,
+        "code_correctness" => 0.85,
+        "code_quality" => 0.80,
+        "code_security" => 0.95,
+        _ => 0.80,
+    }
+}
+
+/// Applies a per-model score offset to a base score, clamped to [0, 1].
+fn mock_score_for_model(base_score: f64, model: &str) -> f64 {
+    let adjusted = match model {
+        "gpt-4o-mini" => base_score - 0.19,
+        "gpt-4o" => base_score,
+        "claude-haiku-4-5-20251001" | "claude-haiku" => base_score - 0.03,
+        "claude-sonnet-4-6" | "claude-sonnet" => base_score + 0.02,
+        _ => base_score - 0.10,
+    };
+    adjusted.clamp(0.0, 1.0)
+}
+
+/// Returns the index of the model with the highest average score.
+fn best_quality_idx(avg_scores: &[f64]) -> usize {
+    avg_scores
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|(i, _)| i)
+        .unwrap_or(0)
+}
+
+/// Returns the index of the model with the best score-to-cost ratio.
+fn best_value_idx(avg_scores: &[f64], costs: &[f64]) -> usize {
+    avg_scores
+        .iter()
+        .zip(costs.iter())
+        .enumerate()
+        .max_by(|(_, (s1, c1)), (_, (s2, c2))| {
+            let r1 = if **c1 == 0.0 { 0.0 } else { *s1 / *c1 };
+            let r2 = if **c2 == 0.0 { 0.0 } else { *s2 / *c2 };
+            r1.partial_cmp(&r2).unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(i, _)| i)
+        .unwrap_or(0)
 }
 
 fn delta_symbol(delta: f64) -> &'static str {
@@ -1794,14 +1878,171 @@ tr:hover td {{ background: #161b22; }}
 
             println!("Report saved to: {}", output);
         }
+
+        Commands::Models {
+            traces,
+            metrics,
+            models: models_arg,
+            mock,
+        } => {
+            let dir = std::path::Path::new(&traces);
+            let mut paths: Vec<std::path::PathBuf> = match std::fs::read_dir(dir) {
+                Ok(entries) => entries
+                    .filter_map(|e| e.ok())
+                    .map(|e| e.path())
+                    .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("json"))
+                    .collect(),
+                Err(e) => {
+                    eprintln!(
+                        "Error: cannot read traces directory '{}': {}",
+                        traces, e
+                    );
+                    std::process::exit(1);
+                }
+            };
+            paths.sort();
+
+            let metric_names: Vec<&str> = metrics
+                .split(',')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect();
+
+            let model_names: Vec<&str> = models_arg
+                .split(',')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect();
+
+            println!("EvalForge — Model Comparison");
+            println!("─────────────────────────────");
+            println!("Traces:  {} found", paths.len());
+            println!("Metrics: {}", metric_names.join(", "));
+            println!("─────────────────────────────");
+
+            // Column widths
+            let model_col = 20usize;
+            let metric_col = 16usize;
+            let avg_col = 10usize;
+
+            // Header row
+            print!("{:<width$}", "Model", width = model_col);
+            for m in &metric_names {
+                print!("{:<width$}", m, width = metric_col);
+            }
+            print!("{:<width$}", "Avg Score", width = avg_col);
+            println!("Cost/Run");
+
+            // Gather per-model results
+            let mut all_avg_scores: Vec<f64> = Vec::new();
+            let mut all_costs: Vec<f64> = Vec::new();
+
+            for model in &model_names {
+                let cost = model_cost(model);
+
+                let per_metric_avgs: Vec<f64> = if mock {
+                    // Mock: apply model-specific offset to base scores
+                    metric_names
+                        .iter()
+                        .map(|m| mock_score_for_model(mock_base_score(m), model))
+                        .collect()
+                } else {
+                    // Real: score each trace, average per metric
+                    let api_key = match std::env::var("ANTHROPIC_API_KEY") {
+                        Ok(k) => k,
+                        Err(_) => {
+                            eprintln!(
+                                "Error: ANTHROPIC_API_KEY not set. Use --mock to test without an API key."
+                            );
+                            std::process::exit(1);
+                        }
+                    };
+                    let mut metric_acc: Vec<Vec<f64>> =
+                        metric_names.iter().map(|_| Vec::new()).collect();
+
+                    for path in &paths {
+                        let t = match load_trace(path.to_str().unwrap_or("")) {
+                            Ok(t) => t,
+                            Err(_) => continue,
+                        };
+                        for (mi, mname) in metric_names.iter().enumerate() {
+                            if let Some(s) =
+                                score_metric(&t, mname, false, &api_key, 0.7, None)
+                            {
+                                metric_acc[mi].push(s.score);
+                            }
+                        }
+                    }
+
+                    metric_acc
+                        .iter()
+                        .map(|scores| {
+                            if scores.is_empty() {
+                                0.0
+                            } else {
+                                scores.iter().sum::<f64>() / scores.len() as f64
+                            }
+                        })
+                        .collect()
+                };
+
+                let avg = if per_metric_avgs.is_empty() {
+                    0.0
+                } else {
+                    per_metric_avgs.iter().sum::<f64>() / per_metric_avgs.len() as f64
+                };
+
+                // Print data row
+                print!("{:<width$}", model, width = model_col);
+                for &s in &per_metric_avgs {
+                    print!("{:<width$.2}", s, width = metric_col);
+                }
+                print!("{:<width$.2}", avg, width = avg_col);
+                println!("${:.4}", cost);
+
+                all_avg_scores.push(avg);
+                all_costs.push(cost);
+            }
+
+            println!("─────────────────────────────");
+
+            if model_names.is_empty() {
+                return;
+            }
+
+            let best_q = best_quality_idx(&all_avg_scores);
+            let best_v = best_value_idx(&all_avg_scores, &all_costs);
+            let most_exp = all_costs
+                .iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| {
+                    a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .map(|(i, _)| i)
+                .unwrap_or(0);
+
+            println!(
+                "Best quality:   {:<16} ({:.2})",
+                model_names[best_q], all_avg_scores[best_q]
+            );
+            println!(
+                "Best value:     {:<16} (${:.4}/run, {:.2} avg)",
+                model_names[best_v], all_costs[best_v], all_avg_scores[best_v]
+            );
+            println!(
+                "Most expensive: {:<16} (${:.4}/run)",
+                model_names[most_exp], all_costs[most_exp]
+            );
+            println!("─────────────────────────────");
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        batch_outcome, calibrate_agreement, delta_symbol, linear_slope, report_metric_average,
-        report_pass_rate, Agreement,
+        batch_outcome, best_quality_idx, best_value_idx, calibrate_agreement, delta_symbol,
+        linear_slope, model_cost, report_metric_average, report_pass_rate, Agreement,
     };
 
     #[test]
@@ -1955,5 +2196,50 @@ mod tests {
         let scores = vec![0.8_f64, 0.9_f64];
         let avg = report_metric_average(&scores);
         assert!((avg - 0.85).abs() < 1e-9, "expected 0.85, got {}", avg);
+    }
+
+    // --- models tests ---
+
+    #[test]
+    fn test_model_cost_gpt4o() {
+        assert!(
+            (model_cost("gpt-4o") - 0.023).abs() < 1e-9,
+            "gpt-4o cost should be 0.023"
+        );
+    }
+
+    #[test]
+    fn test_model_cost_haiku() {
+        assert!(
+            (model_cost("claude-haiku") - 0.0008).abs() < 1e-9,
+            "claude-haiku cost should be 0.0008"
+        );
+        assert!(
+            (model_cost("claude-haiku-4-5-20251001") - 0.0008).abs() < 1e-9,
+            "claude-haiku-4-5-20251001 cost should be 0.0008"
+        );
+    }
+
+    #[test]
+    fn test_model_best_quality() {
+        // claude-sonnet (idx 3) has highest avg score
+        let scores = vec![0.69_f64, 0.90, 0.87, 0.92];
+        assert_eq!(
+            best_quality_idx(&scores),
+            3,
+            "claude-sonnet should be best quality"
+        );
+    }
+
+    #[test]
+    fn test_model_best_value() {
+        // haiku (idx 2): ratio = 0.87/0.0008 = 1087.5 — beats all others
+        let scores = vec![0.69_f64, 0.90, 0.87, 0.92];
+        let costs = vec![0.001_f64, 0.023, 0.0008, 0.019];
+        assert_eq!(
+            best_value_idx(&scores, &costs),
+            2,
+            "claude-haiku should be best value"
+        );
     }
 }
