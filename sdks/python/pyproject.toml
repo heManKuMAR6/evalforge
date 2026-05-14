@@ -4,12 +4,14 @@ build-backend = "maturin"
 
 [project]
 name = "evalforge"
-version = "1.0.0"
-description = "Framework-agnostic LLM agent evaluation harness"
+version = "2.0.0"
+description = "Framework-agnostic LLM agent evaluation harness with parallel judge swarm"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-dependencies = []
+dependencies = [
+    "aiohttp>=3.9",
+]
 
 [project.urls]
 Homepage = "https://github.com/heManKuMAR6/evalforge"

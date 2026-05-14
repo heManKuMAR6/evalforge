@@ -1,0 +1,28 @@
+{
+  "evalforge_version": "2.0",
+  "trace_id": "trace-001",
+  "swarm_result": {
+    "overall": "PASS",
+    "scores": {
+      "faithfulness": 0.85,
+      "hallucination": 0.9,
+      "goal_completion": 0.75,
+      "g_eval": 0.78,
+      "context_precision": 0.95,
+      "answer_relevance": 0.92,
+      "tool_accuracy": 1.0,
+      "code_security": 1.0
+    },
+    "weighted_score": 0.9,
+    "threshold": 0.7,
+    "anomalies": [],
+    "human_review_flags": [],
+    "failure_reason": null,
+    "judge_timings_ms": {
+      "A": 2395,
+      "B": 2195,
+      "C": 1996,
+      "D": 0
+    }
+  }
+}

@@ -177,6 +177,64 @@ enum Commands {
         #[command(subcommand)]
         command: SkillsCommands,
     },
+
+    /// Run the parallel judge swarm (v2.0) on a directory of traces
+    Swarm {
+        /// Directory containing trace JSON files
+        #[arg(long)]
+        traces: String,
+
+        /// Directory to save SwarmResult JSON files (one per trace)
+        #[arg(long)]
+        output: Option<String>,
+
+        /// Judge model: deepseek-v4-flash, ollama/<name>, or claude-haiku-4-5
+        #[arg(long = "judge-model")]
+        judge_model: Option<String>,
+
+        /// Pass/fail threshold for the weighted overall score
+        #[arg(long, default_value_t = 0.7)]
+        threshold: f64,
+
+        /// Flag judges whose two metrics disagree by more than this
+        #[arg(long = "consensus-threshold", default_value_t = 0.3)]
+        consensus_threshold: f64,
+
+        /// Use deterministic mock scores (no API key required)
+        #[arg(long, default_value_t = false)]
+        mock: bool,
+
+        /// Rubric for g_eval (judge B). Optional — a default is used otherwise.
+        #[arg(long)]
+        rubric: Option<String>,
+    },
+
+    /// Diff two SwarmResult JSON files / directories and optionally post to GitHub
+    Diff {
+        /// Baseline SwarmResult JSON file or directory
+        #[arg(long)]
+        before: String,
+
+        /// New SwarmResult JSON file or directory
+        #[arg(long)]
+        after: String,
+
+        /// Post the diff table as a comment on the current PR
+        #[arg(long = "post-github-comment", default_value_t = false)]
+        post_github_comment: bool,
+
+        /// owner/repo (default: $GITHUB_REPOSITORY)
+        #[arg(long)]
+        repo: Option<String>,
+
+        /// PR number (default: $GITHUB_PR_NUMBER or parsed from $GITHUB_REF)
+        #[arg(long)]
+        pr: Option<String>,
+
+        /// Write the markdown diff table to this path in addition to stdout
+        #[arg(long)]
+        output: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -2228,7 +2286,103 @@ tr:hover td {{ background: #161b22; }}
                 println!("─────────────────────────────");
             }
         },
+
+        Commands::Swarm {
+            traces,
+            output,
+            judge_model,
+            threshold,
+            consensus_threshold,
+            mock,
+            rubric,
+        } => {
+            let mut cmd_args: Vec<String> = vec![
+                "-m".to_string(),
+                "evalforge.swarm.cli".to_string(),
+                "swarm".to_string(),
+                "--traces".to_string(),
+                traces,
+                "--threshold".to_string(),
+                format!("{}", threshold),
+                "--consensus-threshold".to_string(),
+                format!("{}", consensus_threshold),
+            ];
+            if let Some(o) = output {
+                cmd_args.push("--output".to_string());
+                cmd_args.push(o);
+            }
+            if let Some(m) = judge_model {
+                cmd_args.push("--model".to_string());
+                cmd_args.push(m);
+            }
+            if let Some(r) = rubric {
+                cmd_args.push("--rubric".to_string());
+                cmd_args.push(r);
+            }
+            if mock {
+                cmd_args.push("--mock".to_string());
+            }
+            let code = run_python_swarm(&cmd_args);
+            std::process::exit(code);
+        }
+
+        Commands::Diff {
+            before,
+            after,
+            post_github_comment,
+            repo,
+            pr,
+            output,
+        } => {
+            let mut cmd_args: Vec<String> = vec![
+                "-m".to_string(),
+                "evalforge.swarm.cli".to_string(),
+                "diff".to_string(),
+                "--before".to_string(),
+                before,
+                "--after".to_string(),
+                after,
+            ];
+            if post_github_comment {
+                cmd_args.push("--post-github-comment".to_string());
+            }
+            if let Some(r) = repo {
+                cmd_args.push("--repo".to_string());
+                cmd_args.push(r);
+            }
+            if let Some(p) = pr {
+                cmd_args.push("--pr".to_string());
+                cmd_args.push(p);
+            }
+            if let Some(o) = output {
+                cmd_args.push("--output".to_string());
+                cmd_args.push(o);
+            }
+            let code = run_python_swarm(&cmd_args);
+            std::process::exit(code);
+        }
     }
+}
+
+/// Invoke the Python swarm CLI. Tries ``python3`` then ``python`` and reports
+/// a helpful error if neither is found. Returns the child process exit code.
+fn run_python_swarm(args: &[String]) -> i32 {
+    for python in ["python3", "python"] {
+        let result = std::process::Command::new(python).args(args).status();
+        match result {
+            Ok(status) => return status.code().unwrap_or(1),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => {
+                eprintln!("Error invoking {}: {}", python, e);
+                return 1;
+            }
+        }
+    }
+    eprintln!(
+        "Error: Python is required for `evalforge swarm` and `evalforge diff`.\n\
+         Install the evalforge Python SDK (`pip install evalforge`) and try again."
+    );
+    1
 }
 
 #[cfg(test)]

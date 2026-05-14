@@ -71,6 +71,77 @@ print(result.metrics[0].score)   # 0.91
 print(result.metrics[0].reason)  # "The answer accurately reflects..."
 ```
 
+## v2.0 — Parallel Judge Swarm
+
+`evalforge swarm` fans 10 metrics across 5 judges in parallel via `asyncio`,
+collapsing per-trace eval from ~12s to ~1.5s. CI-quality-gate fast.
+
+### CLI
+
+```bash
+# Score every trace in a directory, save SwarmResult JSON per trace
+evalforge swarm --traces tests/traces --output .evalforge/results
+
+# Pick the judge model (default: claude-haiku-4-5)
+evalforge swarm --traces tests/traces --judge-model deepseek-v4-flash
+evalforge swarm --traces tests/traces --judge-model ollama/qwen3.5
+
+# No API key needed — deterministic mock mode for CI smoke tests
+evalforge swarm --traces tests/traces --mock
+
+# Diff before/after results; PR-comment optional
+evalforge diff --before .evalforge/before --after .evalforge/after \
+    --post-github-comment
+```
+
+### Python API
+
+```python
+from evalforge.swarm import run_swarm
+
+result = run_swarm("trace.json", model="deepseek-v4-flash")
+print(result.passed, result.weighted_score, result.judge_timings_ms)
+# True  0.92  {'A': 312, 'B': 298, 'C': 304, 'D': 1, 'E': 287}
+```
+
+### Judge layout
+
+| Judge | Metrics | Shared context |
+|-------|---------|----------------|
+| A     | faithfulness + hallucination          | tool outputs    |
+| B     | goal_completion + g_eval              | task + rubric   |
+| C     | context_precision + answer_relevance  | retrieval       |
+| D     | tool_accuracy + code_security         | deterministic   |
+| E     | code_correctness + code_quality       | code blocks     |
+
+`hallucination` and `code_security` are weighted **1.5×** in the overall
+score. Disagreements >0.3 between a judge's two metrics are surfaced as
+human-review flags; high-overall-but-one-low-metric mixes are surfaced as
+anomalies.
+
+### Config
+
+`evalforge.config.json` (resolved from CWD upward) or env vars:
+
+```json
+{
+  "judge_model": "deepseek-v4-flash",
+  "deepseek_base_url": "https://api.deepseek.com/v1",
+  "ollama_base_url": "http://localhost:11434/v1"
+}
+```
+
+Env overrides: `EVALFORGE_JUDGE_MODEL`, `DEEPSEEK_API_KEY`, `OLLAMA_BASE_URL`,
+`ANTHROPIC_API_KEY`.
+
+### GitHub Actions
+
+A ready-made workflow lives at `.github/workflows/evalforge.yml`. It runs the
+swarm on every PR, downloads the `evalforge-baseline` artifact from `main`,
+and posts a diff table as a PR comment.
+
+
+
 ## Framework Adapters
 
 No manual JSON required. Convert your agent's output directly:

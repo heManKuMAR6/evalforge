@@ -1,0 +1,19 @@
+{
+  "evalforge_version": "2.0",
+  "trace_id": "trace-simple-001",
+  "swarm_result": {
+    "overall": "PASS",
+    "scores": {
+      "goal_completion": 0.85,
+      "g_eval": 0.88
+    },
+    "weighted_score": 0.865,
+    "threshold": 0.7,
+    "anomalies": [],
+    "human_review_flags": [],
+    "failure_reason": null,
+    "judge_timings_ms": {
+      "B": 1
+    }
+  }
+}

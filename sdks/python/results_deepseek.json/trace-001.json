@@ -1,0 +1,28 @@
+{
+  "evalforge_version": "2.0",
+  "trace_id": "trace-001",
+  "swarm_result": {
+    "overall": "FAIL",
+    "scores": {
+      "faithfulness": 0.6,
+      "hallucination": 0.8,
+      "goal_completion": 1.0,
+      "g_eval": 1.0,
+      "context_precision": 1.0,
+      "answer_relevance": 1.0,
+      "tool_accuracy": 1.0,
+      "code_security": 1.0
+    },
+    "weighted_score": 0.9222,
+    "threshold": 0.7,
+    "anomalies": [],
+    "human_review_flags": [],
+    "failure_reason": "faithfulness scored 0.60: The answer accurately reflects HELMET and LiveBench from the tool outputs, but introduces two additional papers (Judging the Judges, MMLU-Pro) not present in the provided tool outputs, reducing faithfulness.",
+    "judge_timings_ms": {
+      "A": 21859,
+      "B": 3813,
+      "C": 7606,
+      "D": 0
+    }
+  }
+}
