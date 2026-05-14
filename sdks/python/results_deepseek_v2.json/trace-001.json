@@ -1,0 +1,49 @@
+{
+  "evalforge_version": "2.0",
+  "trace_id": "trace-001",
+  "swarm_result": {
+    "overall": "FAIL",
+    "scores": {
+      "faithfulness": 0.25,
+      "hallucination": 0.75,
+      "goal_completion": 0.95,
+      "g_eval": 0.95,
+      "context_precision": 1.0,
+      "answer_relevance": 1.0,
+      "tool_accuracy": 1.0,
+      "code_security": 1.0
+    },
+    "weighted_score": 0.8639,
+    "threshold": 0.7,
+    "anomalies": [
+      {
+        "metric": "faithfulness",
+        "score": 0.25,
+        "overall": 0.8639,
+        "high_water": 1.0,
+        "note": "metric scored very low despite at least one metric scoring >0.9"
+      }
+    ],
+    "human_review_flags": [
+      {
+        "judge": "A",
+        "metrics": [
+          "faithfulness",
+          "hallucination"
+        ],
+        "scores": [
+          0.25,
+          0.75
+        ],
+        "delta": 0.5
+      }
+    ],
+    "failure_reason": "faithfulness scored 0.25: The answer correctly identifies the HELMET paper from the tool outputs but introduces three additional papers (LiveBench, Judging the Judges, MMLU-Pro) that are not mentioned in the tool outputs, resulting in low faithfulness.",
+    "judge_timings_ms": {
+      "A": 28052,
+      "B": 3487,
+      "C": 3371,
+      "D": 0
+    }
+  }
+}

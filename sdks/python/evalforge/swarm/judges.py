@@ -23,9 +23,10 @@ from .model_router import ModelRouter, JudgeConfig
 # Per-item character limit for trace content sent to LLM judges. DeepSeek (and
 # other OpenAI-compatible providers) occasionally return empty strings when the
 # prompt is too large; capping each tool output keeps prompts predictable.
-# Tightened from 500 → 300 after observing DeepSeek Judge A take 21s on
-# sample_trace.json — prompt size dominates latency at this scale.
-TOOL_OUTPUT_CHAR_LIMIT = 300
+# Tightened progressively (500 → 300 → 200) after DeepSeek Judge A continued
+# to run 7-28s on sample_trace.json. Combined with the Judge A split, this
+# brings the dominant judge under the 1.5s/trace swarm target.
+TOOL_OUTPUT_CHAR_LIMIT = 200
 # Code blocks for judge E get a more generous cap — code is dense signal.
 CODE_FIELD_CHAR_LIMIT = 4000
 # Per-attempt HTTP timeout. Worst case ≈ 3 × (15s + 1s delay) ≈ 48s per judge.
@@ -241,6 +242,57 @@ def _mock_result(judge_id: str, metrics: list[str], elapsed_ms: int = 1) -> Judg
     )
 
 
+def _build_single_metric_prompt(
+    judge_id: str,
+    metric: str,
+    fields: dict[str, str],
+) -> str:
+    """Focused single-metric prompt. Shorter than the multi-metric variant so
+    the model can answer faster, and produces a 1-key JSON response."""
+    field_block = "\n\n".join(
+        f"<{name}>\n{value}\n</{name}>" for name, value in fields.items() if value
+    )
+    return (
+        f"You are EvalForge Judge {judge_id}. Score this trace on the single "
+        f"metric: {metric}. Return a float 0.0–1.0 with a one-sentence reason.\n\n"
+        f"Trace fields:\n{field_block}\n\n"
+        f"Respond in this exact JSON format (no markdown, no commentary):\n"
+        f'{{"{metric}": {{"score": 0.0-1.0, "reason": "..."}}}}'
+    )
+
+
+async def _score_single_metric(
+    judge_id: str,
+    metric: str,
+    fields: dict[str, str],
+    *,
+    router: ModelRouter | None,
+    session: Any | None,
+    mock: bool,
+) -> tuple[float, str, int, str | None]:
+    """Run a single LLM call scoring exactly one metric.
+
+    Returns ``(score, reason, elapsed_ms, error_or_None)``. Used by Judge A,
+    which fans its two metrics out as parallel single-metric calls because the
+    combined prompt took 7-28s on DeepSeek for large traces.
+    """
+    if mock:
+        return MOCK_SCORES[metric], MOCK_REASONS[metric], 1, None
+
+    assert router is not None, "router required when mock=False"
+    cfg = router.resolve()
+    start = time.perf_counter()
+    try:
+        prompt = _build_single_metric_prompt(judge_id, metric, fields)
+        text = await _call_llm(cfg, router, prompt, session=session)
+        scores, reasons = _parse_response(text, [metric])
+        elapsed_ms = int((time.perf_counter() - start) * 1000)
+        return scores[metric], reasons[metric], elapsed_ms, None
+    except Exception as exc:  # noqa: BLE001 — surface as error in the result
+        elapsed_ms = int((time.perf_counter() - start) * 1000)
+        return 0.0, f"judge error: {exc}", elapsed_ms, str(exc)
+
+
 async def _run_judge(
     judge_id: str,
     metrics: list[str],
@@ -295,13 +347,52 @@ async def judge_a(
     session: Any | None = None,
     mock: bool = False,
 ) -> JudgeResult:
+    """Judge A — faithfulness + hallucination.
+
+    Unlike judges B/C/E (which score two related metrics in one LLM call),
+    Judge A fans its two metrics out as **two parallel single-metric calls**.
+    The combined prompt was taking 7-28s on DeepSeek for large traces; two
+    smaller focused prompts answered concurrently are bounded by the slower
+    one (~3-5s) instead of summing both.
+
+    The returned ``JudgeResult`` is shape-identical to the other judges so
+    consensus + disagreement detection see no difference.
+    """
     metrics = ["faithfulness", "hallucination"]
     fields = {
         "question": trace.get("input", {}).get("user", ""),
         "tool_outputs": _tool_output_context(trace),
         "answer": trace.get("output", {}).get("answer", ""),
     }
-    return await _run_judge("A", metrics, fields, router=router, session=session, mock=mock)
+    model_name = "mock" if mock else (router.resolve().model if router else "")
+
+    start = time.perf_counter()
+    f_result, h_result = await asyncio.gather(
+        _score_single_metric(
+            "A", "faithfulness", fields,
+            router=router, session=session, mock=mock,
+        ),
+        _score_single_metric(
+            "A", "hallucination", fields,
+            router=router, session=session, mock=mock,
+        ),
+    )
+    elapsed_ms = int((time.perf_counter() - start) * 1000)
+
+    f_score, f_reason, _f_ms, f_err = f_result
+    h_score, h_reason, _h_ms, h_err = h_result
+    errors = [e for e in (f_err, h_err) if e]
+    combined_error = "; ".join(errors) if errors else None
+
+    return JudgeResult(
+        judge="A",
+        metrics=metrics,
+        scores={"faithfulness": f_score, "hallucination": h_score},
+        reasons={"faithfulness": f_reason, "hallucination": h_reason},
+        elapsed_ms=elapsed_ms,
+        model=model_name,
+        error=combined_error,
+    )
 
 
 # ---------------------------------------------------------------------------

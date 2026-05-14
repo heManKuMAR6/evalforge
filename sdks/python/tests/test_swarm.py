@@ -664,6 +664,52 @@ def test_call_llm_passes_timeout_to_aiohttp():
     assert sent_timeout.total == J.JUDGE_HTTP_TIMEOUT_SECONDS
 
 
+def test_judge_a_splits_into_two_parallel_calls():
+    """Non-mock Judge A should make exactly 2 LLM calls (one per metric)."""
+    from evalforge.swarm import judges as J
+
+    session = _FakeSession([
+        _FakeResponse(200, {"content": [{"text": '{"faithfulness": {"score": 0.88, "reason": "ok"}}'}]}),
+        _FakeResponse(200, {"content": [{"text": '{"hallucination": {"score": 0.94, "reason": "ok"}}'}]}),
+    ])
+    router = ModelRouter(env={"ANTHROPIC_API_KEY": "k"})
+    trace = _load(SAMPLE_TRACE)
+    result = asyncio.run(J.judge_a(trace, router=router, session=session, mock=False))
+
+    assert len(session.calls) == 2, "judge A must split into 2 single-metric calls"
+    assert result.scores == {"faithfulness": 0.88, "hallucination": 0.94}
+    assert result.error is None
+
+    # Each prompt should mention only one metric, not both
+    prompts = [c["json"]["messages"][0]["content"] for c in session.calls]
+    assert sum("faithfulness" in p for p in prompts) >= 1
+    assert sum("hallucination" in p for p in prompts) >= 1
+    # No single prompt should ask for both metrics together (the whole point of the split)
+    for p in prompts:
+        assert not ("faithfulness" in p and "hallucination" in p), \
+            "split should produce focused single-metric prompts"
+
+
+def test_judge_a_partial_failure_surfaces_in_error():
+    """If one of the two parallel calls fails, the other's score is still recorded."""
+    from evalforge.swarm import judges as J
+
+    session = _FakeSession([
+        _FakeResponse(200, {"content": [{"text": '{"faithfulness": {"score": 0.9, "reason": "ok"}}'}]}),
+        _FakeResponse(500, "downstream error"),
+    ])
+    router = ModelRouter(env={"ANTHROPIC_API_KEY": "k"})
+    trace = _load(SAMPLE_TRACE)
+    result = asyncio.run(J.judge_a(trace, router=router, session=session, mock=False))
+
+    # Faithfulness still scored from the successful call
+    assert result.scores["faithfulness"] == 0.9
+    # Hallucination defaulted to 0 because its call failed
+    assert result.scores["hallucination"] == 0.0
+    assert result.error is not None
+    assert "500" in result.error
+
+
 def test_call_llm_does_not_retry_on_http_error():
     """A 500 should fail fast — only empty responses trigger retries."""
     from evalforge.swarm import judges as J
