@@ -1,0 +1,19 @@
+{
+  "evalforge_version": "2.0",
+  "trace_id": "trace-clean-001",
+  "swarm_result": {
+    "overall": "FAIL",
+    "scores": {
+      "goal_completion": 0.0,
+      "g_eval": 0.0
+    },
+    "weighted_score": 0.0,
+    "threshold": 0.7,
+    "anomalies": [],
+    "human_review_flags": [],
+    "failure_reason": "goal_completion scored 0.00: No response was provided by the assistant, so the goal of answering the question is not completed. (+1 other metric below 0.7)",
+    "judge_timings_ms": {
+      "B": 2554
+    }
+  }
+}

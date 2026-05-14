@@ -1,0 +1,49 @@
+{
+  "evalforge_version": "2.0",
+  "trace_id": "trace-001",
+  "swarm_result": {
+    "overall": "FAIL",
+    "scores": {
+      "faithfulness": 0.0,
+      "hallucination": 0.8,
+      "goal_completion": 1.0,
+      "g_eval": 1.0,
+      "context_precision": 0.75,
+      "answer_relevance": 1.0,
+      "tool_accuracy": 1.0,
+      "code_security": 1.0
+    },
+    "weighted_score": 0.8278,
+    "threshold": 0.7,
+    "anomalies": [
+      {
+        "metric": "faithfulness",
+        "score": 0.0,
+        "overall": 0.8278,
+        "high_water": 1.0,
+        "note": "metric scored very low despite at least one metric scoring >0.9"
+      }
+    ],
+    "human_review_flags": [
+      {
+        "judge": "A",
+        "metrics": [
+          "faithfulness",
+          "hallucination"
+        ],
+        "scores": [
+          0.0,
+          0.8
+        ],
+        "delta": 0.8
+      }
+    ],
+    "failure_reason": "faithfulness scored 0.00: The answer introduces specific papers (LiveBench, Judging the Judges, MMLU-Pro) that are not present in the tool outputs, which only contained HELMET and a thematic summary without naming those papers.",
+    "judge_timings_ms": {
+      "A": 5813,
+      "B": 5808,
+      "C": 6064,
+      "D": 0
+    }
+  }
+}

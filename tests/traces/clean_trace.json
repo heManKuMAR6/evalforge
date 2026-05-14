@@ -1,0 +1,25 @@
+{
+  "evalforge_version": "0.1",
+  "trace_id": "trace-clean-001",
+  "metadata": {
+    "framework": "langchain",
+    "model": "gpt-4o",
+    "agent_name": "research-agent"
+  },
+  "input": {
+    "user": "What is the capital of France?",
+    "system": "You are a helpful assistant."
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "type": "thought",
+      "content": "The user wants to know the capital of France."
+    }
+  ],
+  "output": {
+    "final_answer": "The capital of France is Paris.",
+    "reasoning": "This is a well known geographical fact."
+  },
+  "expected_output": "Paris"
+}
