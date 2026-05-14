@@ -559,7 +559,7 @@ def test_retry_constants_set_reasonably():
     )
     assert JUDGE_MAX_RETRIES == 3
     assert JUDGE_RETRY_DELAY_SECONDS == 1.0
-    assert JUDGE_HTTP_TIMEOUT_SECONDS == 30
+    assert JUDGE_HTTP_TIMEOUT_SECONDS == 15
 
 
 class _FakeResponse:

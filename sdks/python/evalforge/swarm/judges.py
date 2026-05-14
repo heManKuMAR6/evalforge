@@ -23,11 +23,13 @@ from .model_router import ModelRouter, JudgeConfig
 # Per-item character limit for trace content sent to LLM judges. DeepSeek (and
 # other OpenAI-compatible providers) occasionally return empty strings when the
 # prompt is too large; capping each tool output keeps prompts predictable.
-TOOL_OUTPUT_CHAR_LIMIT = 500
+# Tightened from 500 → 300 after observing DeepSeek Judge A take 21s on
+# sample_trace.json — prompt size dominates latency at this scale.
+TOOL_OUTPUT_CHAR_LIMIT = 300
 # Code blocks for judge E get a more generous cap — code is dense signal.
 CODE_FIELD_CHAR_LIMIT = 4000
-# Per-attempt HTTP timeout. Worst case ≈ 3 × (30s + 1s delay) ≈ 93s per judge.
-JUDGE_HTTP_TIMEOUT_SECONDS = 30
+# Per-attempt HTTP timeout. Worst case ≈ 3 × (15s + 1s delay) ≈ 48s per judge.
+JUDGE_HTTP_TIMEOUT_SECONDS = 15
 # Retries are triggered only by empty responses (the source of the original
 # "Expecting value: line 1 column 1 (char 0)" error). HTTP errors fail fast.
 JUDGE_MAX_RETRIES = 3
